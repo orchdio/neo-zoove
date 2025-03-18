@@ -7,17 +7,6 @@ export default function Home() {
 
   return (
     <div>
-      <div className={"flex flex-row justify-between"}>
-        <span
-          onClick={() => {
-            console.log("Clicking to change theme");
-            setTheme("light");
-          }}
-        >
-          light
-        </span>
-        <span onClick={() => setTheme("dark")}>dark</span>
-      </div>
       <span>Hello</span>
     </div>
   );
