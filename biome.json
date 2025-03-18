@@ -33,7 +33,8 @@
       },
       "correctness": {
         "noUnusedImports": "warn"
-      }
+      },
+      "a11y": {"useKeyWithClickEvents": "off"}
     }
   },
   "javascript": {
