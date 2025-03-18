@@ -1,10 +1,10 @@
 import "@/styles/globals.css";
-import {ThemeProvider} from "@/components/theme-provider";
-import type {NextPage} from "next";
-import type {AppProps} from "next/app";
-import {Router} from "next/router";
+import { ThemeProvider } from "@/components/theme-provider";
+import type { NextPage } from "next";
+import type { AppProps } from "next/app";
+import { Router } from "next/router";
 import posthog from "posthog-js";
-import {type ReactElement, type ReactNode, useEffect} from "react"; // biome-ignore lint/complexity/noBannedTypes: not sure how to shut linter up here and its not worth fighting the checker because of this. waste of time
+import { type ReactElement, type ReactNode, useEffect } from "react";
 
 // biome-ignore lint/complexity/noBannedTypes: not sure how to shut linter up here and its not worth fighting the checker because of this. waste of time
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {

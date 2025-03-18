@@ -1,7 +1,7 @@
-import {Header} from "@/components/header/header";
-import {NextSeo} from "next-seo";
+import { Footer } from "@/components/footer/footer";
+import { Header } from "@/components/header/header";
+import { NextSeo } from "next-seo";
 import type React from "react";
-import {Footer} from "@/components/footer/footer";
 
 interface LayoutProps {
   // fixme: using any for now. properly type when its appropriate.

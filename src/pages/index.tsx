@@ -1,6 +1,6 @@
-import {useTheme} from "next-themes";
-import type {ReactElement} from "react";
 import Layout from "@/components/layout";
+import { useTheme } from "next-themes";
+import type { ReactElement } from "react";
 
 export default function Home() {
   const { setTheme } = useTheme();
