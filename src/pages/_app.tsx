@@ -22,7 +22,7 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
       person_profiles: "always",
       loaded: (posthog) => {
-        if (process.env.NODE_ENV === "development") posthog.debug();
+        // if (process.env.NODE_ENV === "development") posthog.debug();
       },
     });
 

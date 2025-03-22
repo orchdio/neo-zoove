@@ -62,6 +62,8 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --text-color: white;
+  --color-header-background: var(--color-zoove-gray);
 }
 /*---break---*/
 .dark {
@@ -96,6 +98,9 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --text-color: white;
+  --color-header-background: #ffff;
+  --header-subtitle-color: var(--color-zoove-gray-300);
 }
 /*---break---*/
 @theme inline {
@@ -143,9 +148,11 @@
   --color-zoove-gray: #313131;
   --color-zoove-gray-100: #8f95b2;
   --color-zoove-gray-200: #e5e5e5;
-  --color-zoove-gray-300: #f7f7f7;
+  --color-zoove-gray-300: rgb(225 225 225 / 80%);
+  --color-zoove-gray-500: #f7f7f7;
   --color-zoove-blue-100: #a1ace8;
-  --color-zoove-blue-200: #4158d0;
+  --coloir-zoove-blue-200: #7c8cdf;
+  --color-zoove-blue-400: #4158d0;
   --color-zoove-pink-100: #c850c0;
   --color-zoove-pink-200: #c850c0;
 }
@@ -156,5 +163,52 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* header animation chakra port things*/
+:root {
+  --gradient-light: radial-gradient(circle, #4158d0 0, #c850c0 26%);
+  --gradient-dark: radial-gradient(circle, #4158d0 0, #c850c0 26%, #fff 27%);
+  --gradient-color: var(--gradient-light);
+  --bg-size: 250%;
+}
+
+/* Set dark mode variables */
+.dark-mode {
+  --gradient-color: var(--gradient-dark);
+}
+
+@keyframes moveGradient {
+  0% {
+    background-position: -20% 100%;
+  }
+  100% {
+    background-position: 200% 100%;
+  }
+}
+
+.animated-heading {
+  animation: moveGradient 10s infinite alternate;
+}
+
+/* For responsive font sizing and background size */
+@media (max-width: 768px) {
+  :root {
+    --bg-size: 280%;
+  }
+
+  .animated-heading {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 769px) {
+  :root {
+    --bg-size: 250%;
+  }
+
+  .animated-heading {
+    font-size: 4.5rem;
   }
 }

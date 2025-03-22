@@ -1,1 +1,2 @@
+biome format src/
 biome check src/ --fix
