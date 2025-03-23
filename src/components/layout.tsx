@@ -1,5 +1,6 @@
 import { Footer } from "@/components/footer/footer";
 import { Header } from "@/components/header/header";
+import { Toaster } from "@/components/ui/sonner";
 import { NextSeo } from "next-seo";
 import type React from "react";
 
@@ -16,6 +17,7 @@ const Layout = ({ seo = {}, children }: LayoutProps) => {
 
         <Header />
         <main className={"flex-grow"}>{children}</main>
+        <Toaster />
         <Footer />
       </div>
     </>

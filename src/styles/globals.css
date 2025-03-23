@@ -63,6 +63,7 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   --text-color: white;
+  --text-color-black: black;
   --color-header-background: var(--color-zoove-gray);
 }
 /*---break---*/
@@ -155,6 +156,10 @@
   --color-zoove-blue-400: #4158d0;
   --color-zoove-pink-100: #c850c0;
   --color-zoove-pink-200: #c850c0;
+
+  --color-zoove-red-100: #f37677;
+
+  --color-zoove-darkblue-100: #203952;
 }
 /*---break---*/
 @layer base {

@@ -6,12 +6,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 const Button = (props: ButtonProps) => {
   // merge tailwind classnames
-  const mergedStyles = twMerge(
-    "text-center px-6 w-full rounded-sm",
-    props?.className,
-  );
+  const mergedStyles = twMerge("text-center px-6 rounded-sm", props?.className);
   return (
-    <button type={"button"} className={mergedStyles} {...props}>
+    <button type={"button"} {...props} className={mergedStyles}>
       {props?.text}
     </button>
   );

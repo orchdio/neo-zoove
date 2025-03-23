@@ -13,9 +13,12 @@
   },
   "dependencies": {
     "@ladle/react": "^5.0.1",
+    "arktype": "^2.1.10",
+    "axios": "^1.8.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.5.0",
+    "link-preview-js": "^3.0.14",
     "lucide-react": "^0.483.0",
     "next": "15.2.2",
     "next-seo": "^6.6.0",
@@ -23,6 +26,7 @@
     "posthog-js": "^1.231.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "sonner": "^2.0.1",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7"
   },

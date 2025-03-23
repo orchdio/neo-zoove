@@ -21,7 +21,7 @@ const Waitlist = () => {
         <Button
           text={"Sign me up"}
           className={
-            "rounded-sm text-zoove-blue-100 h-8 bg-transparent outline outline-zoove-blue-100 px-6 text-sm"
+            "rounded-sm text-zoove-blue-100 h-8 bg-transparent outline outline-zoove-blue-100 px-6 text-sm whitespace-nowrap"
           }
         />
       </div>
