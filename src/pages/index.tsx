@@ -14,9 +14,21 @@ import {
 import HeadIcons from "@/views/HeadIcons";
 import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader } from "lucide-react";
+import { EllipsisIcon, ExternalLinkIcon, Loader } from "lucide-react";
+import Image from "next/image";
 import posthog from "posthog-js";
 import { type ReactElement, useEffect, useState } from "react";
+
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useTheme } from "next-themes";
+import DancingDuckGif from "../../public/dancing-duck.gif";
 
 export default function Home() {
   // todo: capture posthog page view event on page load
@@ -25,6 +37,7 @@ export default function Home() {
 
   const [trackResults, setTrackResults] = useState<TrackConversionPayload>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { theme } = useTheme();
 
   const maintenanceMode =
     process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "maintenance";
@@ -56,7 +69,7 @@ export default function Home() {
             ),
             closeButton: true,
             variant: "warning",
-            duration: 2000,
+            duration: 10000,
           });
           return;
         }
@@ -220,6 +233,105 @@ export default function Home() {
               </AnimatePresence>
             </div>
           </Button>
+        </div>
+
+        {/** track card, hard coded for now*/}
+
+        <div className="w-full">
+          <div className="w-full space-y-2">
+            <Card className="w-sm">
+              <CardContent>
+                <div className="flex flex-row items-center space-x-4">
+                  <div className="flex-shrink-0 h-[150px] w-[150px] relative">
+                    <Image
+                      src="https://api.deezer.com/album/6866562/image"
+                      alt="Track cover"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+
+                  <div className="flex flex-col space-y-2 min-w-0 flex-1">
+                    <h2 className="font-bold text-xl line-clamp-2">
+                      I don't know why [manoo remix]
+                    </h2>
+                    <p className="text-sm text-gray-300 line-clamp-2">
+                      Manoo, Enoo Napa, Blanka Mazimela, Kabza de Smallz, Black
+                      Coffee
+                    </p>
+                    <Text
+                      content={"1hr, 32mins"}
+                      className="text-sm text-gray-400"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="w-sm">
+              <CardContent>
+                <div
+                  className={
+                    "p-4 border rounded-lg flex flex-row items-center space-x-4"
+                  }
+                >
+                  <Image
+                    src={`/applemusic/icons/${theme ?? "dark"}.svg`}
+                    alt={"Apple music icon"}
+                    width={21}
+                    height={21}
+                  />
+                  <Text
+                    content={
+                      "I dont know why [manoo remix] with Blanka Mazimela, Kabza de Smallz, Black Coffee"
+                    }
+                    className={"truncate"}
+                    onClick={() => {
+                      console.log("Menu item clicked");
+                      toast({
+                        title: "Link Copied",
+                        description: (
+                          <Text
+                            content={"📋 Apple music link copied to clipboard"}
+                            className={"text-black"}
+                          />
+                        ),
+                        position: "top-right",
+                        duration: 3000,
+                        variant: "success",
+                      });
+                    }}
+                  />
+                  <div className={"flex flex-row space-x-2"}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <EllipsisIcon />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem>
+                          <ExternalLinkIcon />
+                          <DropdownMenuLabel>
+                            <Text content={"Apple Music"} />
+                          </DropdownMenuLabel>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <div>
+          {isLoading && (
+            <Image
+              src={DancingDuckGif}
+              alt={"Dancing duck gif"}
+              width={100}
+              height={100}
+            />
+          )}
         </div>
       </div>
     </div>

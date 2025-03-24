@@ -22,7 +22,10 @@ interface Variants {
 }
 
 const variantsStyles: Variants = {
-  success: {},
+  success: {
+    backgroundColor: "#74C591",
+    color: "black",
+  },
   warning: {
     backgroundColor: "#F37677",
     color: "black",
