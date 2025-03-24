@@ -1,18 +1,34 @@
 // fixme: properly add custom toast styles when the need is justified. keeping it messy
 // for a reason for now
 
-import { type ToasterProps as Props, Toaster } from "sonner";
+import type React from "react";
+import type { ToasterProps as Props } from "sonner";
+import { toast as sonnerToast } from "sonner";
 
 interface ToastProps extends Props {
-  id: string | number;
+  id?: string | number;
   title: string;
-  description: string;
+  description: string | React.ReactNode;
   button?: {
     label: string;
     onClick: () => void;
   };
   closeButton?: boolean;
+  variant?: "success" | "info" | "warning" | "danger" | "default";
 }
+
+interface Variants {
+  [key: string]: ToastProps["style"];
+}
+
+const variantsStyles: Variants = {
+  success: {},
+  warning: {
+    backgroundColor: "#F37677",
+    color: "black",
+  },
+  default: {},
+};
 
 const Toast = (props: ToastProps) => {
   const { title, description, button, id } = props;
@@ -30,12 +46,26 @@ const Toast = (props: ToastProps) => {
   );
 };
 
-export function toast(props: Omit<ToastProps, "id">) {
-  return <Toaster {...props} />;
-  // return sonnerToast.custom((id) => {
-  //   return <Toast id={id} button={props.button} {...props} />;
-  // });
+export function toast(props: ToastProps) {
+  sonnerToast(props?.title, {
+    ...props,
+    position: props.position,
+    description: props.description,
+    closeButton: true,
+    style: {
+      ...props.style,
+      ...variantsStyles[props.variant ?? "default"],
+    },
+    duration: 2000,
+  });
 }
+
+// export function toast(props: Omit<ToastProps, "id">) {
+//   return <Toaster {...props} />;
+//   // return sonnerToast.custom((id) => {
+//   //   return <Toast id={id} button={props.button} {...props} />;
+//   // });
+// }
 
 // export default function Headless() {
 //     return (

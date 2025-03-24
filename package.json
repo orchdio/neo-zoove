@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@ladle/react": "^5.0.1",
+    "@radix-ui/react-slot": "^1.1.2",
     "arktype": "^2.1.10",
     "axios": "^1.8.4",
     "class-variance-authority": "^0.7.1",

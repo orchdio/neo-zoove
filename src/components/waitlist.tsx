@@ -17,13 +17,9 @@ const Waitlist = () => {
             className="w-full rounded-md outline border  py-1 pl-10 pr-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
           />
         </div>
-
-        <Button
-          text={"Sign me up"}
-          className={
-            "rounded-sm text-zoove-blue-100 h-8 bg-transparent outline outline-zoove-blue-100 px-6 text-sm whitespace-nowrap"
-          }
-        />
+        <Button variant={"secondary"}>
+          <Text content={"Add me"} className={"text-zoove-blue-100"} />
+        </Button>
       </div>
       <Text
         content={`We'll never spam you.`}
