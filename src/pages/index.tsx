@@ -4,30 +4,19 @@ import Layout from "@/components/layout";
 import Text from "@/components/text/text";
 import { toast } from "@/components/toast/toast";
 import ZooveIcon from "@/components/zooveicon";
-import type { TrackConversionPayload } from "@/lib/blueprint";
-import {
-  capitalizeFirstLetter,
-  fetchOriginalUrl,
-  isMagicURL,
-  isValidURL,
-} from "@/lib/utils";
+import { useLinkResolver } from "@/hooks/useHandleLinkPreview";
+import type { TrackConversionPayload, TrackMeta } from "@/lib/blueprint";
+import { convertPlatformToResult, extractPlatform } from "@/lib/utils";
 import HeadIcons from "@/views/HeadIcons";
+import TrackCard from "@/views/TrackCard";
+import TrackPlatformItem from "@/views/TrackPlatformItem";
 import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
-import { EllipsisIcon, ExternalLinkIcon, Loader } from "lucide-react";
+import { Loader } from "lucide-react";
+import { useTheme } from "next-themes";
 import Image from "next/image";
 import posthog from "posthog-js";
 import { type ReactElement, useEffect, useState } from "react";
-
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useTheme } from "next-themes";
 import DancingDuckGif from "../../public/dancing-duck.gif";
 
 export default function Home() {
@@ -36,61 +25,105 @@ export default function Home() {
   const [link, setLink] = useState<string>("");
 
   const [trackResults, setTrackResults] = useState<TrackConversionPayload>();
+  const [trackMeta, setTrackMeta] = useState<TrackMeta>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [sourcePlatform, setSourcePlatform] = useState<string>();
   const { theme } = useTheme();
 
   const maintenanceMode =
     process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "maintenance";
   const disableGoButton = maintenanceMode || goButtonIsDisabled;
 
+  const { resolveLink, isResolving, resolvedLink } = useLinkResolver({
+    onLinkResolved: (resolvedLink) => {
+      console.log("resolveLink", resolvedLink);
+      setLink(resolvedLink);
+      // setGoButtonIsDisabled(false);
+    },
+  });
+
   useEffect(() => {
-    const isValidLink = isValidURL(link);
-    if (!isValidLink || !link) {
+    console.log("Resolved link changed...", link);
+    setLink(link);
+    if (!link) {
       setGoButtonIsDisabled(true);
       return;
     }
 
-    const isShortLink = isMagicURL(link);
-    if (isShortLink) {
-      fetchOriginalUrl(link).then((result) => {
-        // show toast message for unsupported "entities", for now
-        const unsupportedEntity = ["album"].find((entity) =>
-          result.includes(entity),
-        );
-
-        if (unsupportedEntity) {
-          toast({
-            title: `Your link is ${unsupportedEntity === "album link" ? "an" : "a"} ${unsupportedEntity}`,
-            position: "top-right",
-            description: (
-              <span className={"text-black"}>
-                {`💔 ${capitalizeFirstLetter(unsupportedEntity)} conversion is not supported yet`}
-              </span>
-            ),
-            closeButton: true,
-            variant: "warning",
-            duration: 10000,
-          });
-          return;
-        }
-
-        if (result?.preview?.url.includes("playlist")) {
-          // todo: set playlist related state
-        }
-
-        const strippedURL =
-          result?.indexOf("?") !== -1
-            ? (result?.substring(0, result?.indexOf("?")) as string)
-            : (result as string);
-        setLink(strippedURL);
-        setGoButtonIsDisabled(false);
-      });
-
-      return;
-    }
-
+    setLink(link);
     setGoButtonIsDisabled(false);
   }, [link]);
+
+  // useEffect(() => {
+  //   if (link) {
+  //     console.log("Resolved link is");
+  //     console.log(link);
+  //   }
+  //
+  //   if (resolveLink()) {
+  //     console.log("Resolved link is");
+  //     console.log(resolvedLink);
+  //   }
+  // }, [link, resolveLink]);
+
+  // useEffect(() => {
+  //   // handle track results metadata setting
+  //   if (trackResults) {
+  //     const meta = buildTrackResultMetadata(
+  //       trackResults?.platforms,
+  //       sourcePlatform ?? "",
+  //     );
+  //
+  //     setTrackMeta(meta);
+  //   }
+  //
+  //   const isValidLink = isValidURL(link);
+  //   if (!isValidLink || !link) {
+  //     setGoButtonIsDisabled(true);
+  //     return;
+  //   }
+  //
+  //   const isShortLink = isMagicURL(link);
+  //   if (isShortLink) {
+  //     fetchOriginalUrl(link).then((result) => {
+  //       // show toast message for unsupported "entities", for now
+  //       const unsupportedEntity = ["album"].find((entity) =>
+  //         result.includes(entity),
+  //       );
+  //
+  //       if (unsupportedEntity) {
+  //         toast({
+  //           title: `Your link is ${unsupportedEntity === "album link" ? "an" : "a"} ${unsupportedEntity}`,
+  //           position: "top-right",
+  //           description: (
+  //             <span className={"text-black"}>
+  //               {`💔 ${capitalizeFirstLetter(unsupportedEntity)} conversion is not supported yet`}
+  //             </span>
+  //           ),
+  //           closeButton: true,
+  //           variant: "warning",
+  //           duration: 10000,
+  //         });
+  //         return;
+  //       }
+  //
+  //       if (result?.preview?.url.includes("playlist")) {
+  //         // todo: set playlist related state
+  //       }
+  //
+  //       const strippedURL =
+  //         result?.indexOf("?") !== -1
+  //           ? (result?.substring(0, result?.indexOf("?")) as string)
+  //           : (result as string);
+  //       setLink(strippedURL);
+  //       setGoButtonIsDisabled(false);
+  //     });
+  //
+  //     return;
+  //   }
+  //
+  //   setGoButtonIsDisabled(false);
+  // }, [link, trackResults, sourcePlatform]);
 
   const handleGoButtonClick = async () => {
     // then do the conversion. we handle only synchronously handle track conversion here. for playlists & other long running
@@ -116,9 +149,9 @@ export default function Home() {
         },
       });
 
-      const trackData: TrackConversionPayload =
-        trackConversionResponse?.data?.payload;
+      const trackData: TrackConversionPayload = trackConversionResponse?.data;
       setTrackResults(trackData);
+      setSourcePlatform(extractPlatform(link) ?? "");
 
       // capture posthog track conversion event
       posthog.capture("entity_conversion_track_conversion", {
@@ -184,8 +217,8 @@ export default function Home() {
             disabled={maintenanceMode}
             placeholder="Paste track or playlist link"
             value={link}
-            onChange={(e) => {
-              setLink(e.target.value);
+            onChange={async (e) => {
+              await resolveLink(e.target.value);
             }}
             className={"w-full flex-auto h-14 rounded-sm px-2"}
           />
@@ -235,94 +268,33 @@ export default function Home() {
           </Button>
         </div>
 
-        {/** track card, hard coded for now*/}
-
-        <div className="w-full">
-          <div className="w-full space-y-2">
-            <Card className="w-sm">
-              <CardContent>
-                <div className="flex flex-row items-center space-x-4">
-                  <div className="flex-shrink-0 h-[150px] w-[150px] relative">
-                    <Image
-                      src="https://api.deezer.com/album/6866562/image"
-                      alt="Track cover"
-                      fill
-                      className="object-cover"
+        {!isLoading && trackResults && (
+          <TrackCard
+            id={"track-card"}
+            artist={trackMeta?.artist ?? ""}
+            title={trackMeta?.title ?? ""}
+            link={trackMeta?.link ?? ""}
+            cover={trackMeta?.cover ?? ""}
+            description={"todo"}
+            preview={trackMeta?.preview ?? ""}
+            length={trackMeta?.length ?? ""}
+          >
+            {trackResults &&
+              convertPlatformToResult(trackResults?.platforms)?.map(
+                (item, index) => {
+                  return (
+                    <TrackPlatformItem
+                      key={`${index * 2}.platform.result`}
+                      platform={item?.platform}
+                      artist={item.artist}
+                      link={item.link}
+                      title={item.title}
                     />
-                  </div>
-
-                  <div className="flex flex-col space-y-2 min-w-0 flex-1">
-                    <h2 className="font-bold text-xl line-clamp-2">
-                      I don't know why [manoo remix]
-                    </h2>
-                    <p className="text-sm text-gray-300 line-clamp-2">
-                      Manoo, Enoo Napa, Blanka Mazimela, Kabza de Smallz, Black
-                      Coffee
-                    </p>
-                    <Text
-                      content={"1hr, 32mins"}
-                      className="text-sm text-gray-400"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="w-sm">
-              <CardContent>
-                <div
-                  className={
-                    "p-4 border rounded-lg flex flex-row items-center space-x-4"
-                  }
-                >
-                  <Image
-                    src={`/applemusic/icons/${theme ?? "dark"}.svg`}
-                    alt={"Apple music icon"}
-                    width={21}
-                    height={21}
-                  />
-                  <Text
-                    content={
-                      "I dont know why [manoo remix] with Blanka Mazimela, Kabza de Smallz, Black Coffee"
-                    }
-                    className={"truncate"}
-                    onClick={() => {
-                      console.log("Menu item clicked");
-                      toast({
-                        title: "Link Copied",
-                        description: (
-                          <Text
-                            content={"📋 Apple music link copied to clipboard"}
-                            className={"text-black"}
-                          />
-                        ),
-                        position: "top-right",
-                        duration: 3000,
-                        variant: "success",
-                      });
-                    }}
-                  />
-                  <div className={"flex flex-row space-x-2"}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <EllipsisIcon />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem>
-                          <ExternalLinkIcon />
-                          <DropdownMenuLabel>
-                            <Text content={"Apple Music"} />
-                          </DropdownMenuLabel>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
+                  );
+                },
+              )}
+          </TrackCard>
+        )}
         <div>
           {isLoading && (
             <Image

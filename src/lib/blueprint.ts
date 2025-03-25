@@ -24,3 +24,12 @@ export interface Track {
   id: string;
   cover: string;
 }
+
+export interface TrackMeta {
+  link: string;
+  title: string;
+  artist: string;
+  cover: string;
+  length: string;
+  preview?: string;
+}
