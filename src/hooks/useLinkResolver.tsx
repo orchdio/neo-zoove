@@ -20,10 +20,6 @@ export const useLinkResolver = ({
   const [isResolving, setIsResolving] = useState(false);
   const [resolvedLink, setResolvedLink] = useState<string | null>(null);
 
-  // useEffect(() => {
-  //
-  // }, [resolvedLink]);
-
   const resolveLink = useCallback(
     async (link: string) => {
       // Check if it's a magic/short URL
@@ -99,7 +95,7 @@ export const useLinkResolver = ({
           });
         }
 
-        return null;
+        return link;
       }
     },
     [onLinkResolved, unsupportedEntities, enableToast],
