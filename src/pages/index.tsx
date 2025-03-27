@@ -18,7 +18,7 @@ import { useMutation } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader } from "lucide-react";
 import Image from "next/image";
-import { type ReactElement, useEffect, useState } from "react";
+import { type ReactElement, useEffect, useRef, useState } from "react";
 import DancingDuckGif from "../../public/dancing-duck.gif";
 
 import Text from "@/components/text/text";
@@ -32,6 +32,8 @@ export default function Home() {
   const [trackMeta, setTrackMeta] = useState<TrackMeta>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [sourcePlatform, setSourcePlatform] = useState<string>();
+
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const maintenanceMode =
     process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "maintenance";
@@ -142,6 +144,7 @@ export default function Home() {
               await resolveLink(e.target.value);
             }}
             className={"w-full flex-auto h-14 rounded-sm px-2"}
+            ref={inputRef}
           />
           <Button
             disabled={disableGoButton}

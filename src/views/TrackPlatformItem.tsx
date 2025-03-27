@@ -32,12 +32,12 @@ const TrackPlatformItem = (props: Props) => {
             sm:w-full
             md:w-full
             lg:w-full
-            xl:w-full bg-zoove-gray-100 "
+            xl:w-full bg-zoove-gray-100"
     >
       <CardContent>
         <div
           className={
-            "p-4 border rounded-lg flex flex-row items-center justify-between border-zoove-blue-100 dark:border-accent"
+            "p-4 border rounded-lg flex flex-row items-center justify-between border-zoove-blue-100 dark:border-accent cursor-pointer"
           }
         >
           <div

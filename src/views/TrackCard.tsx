@@ -1,7 +1,10 @@
 import Text from "@/components/text/text";
 import { Card, CardContent } from "@/components/ui/card";
-import { PlayCircleIcon } from "lucide-react";
+import { usePlayback } from "@/hooks/usePlayback";
+import { motion } from "framer-motion";
+import { PauseCircle, PlayCircleIcon } from "lucide-react";
 import Image from "next/image";
+import type React from "react";
 
 interface Props {
   title: string;
@@ -16,6 +19,9 @@ interface Props {
   children?: React.ReactNode;
 }
 const TrackCard = (props: Props) => {
+  const { isPlaying, handlePlay, playingTrack, handlePause, progress } =
+    usePlayback();
+
   return (
     <div className="w-full">
       <div className="w-full space-y-2">
@@ -53,9 +59,43 @@ const TrackCard = (props: Props) => {
                     className="text-sm dark:text-gray-400 text-gray-300"
                   />
                   <div
-                    className={!props?.preview ? "opacity-40" : "opacity-100"}
+                    className={`${!props?.preview ? "opacity-40" : "opacity-100"} cursor-pointer`}
+                    onClick={() => {
+                      isPlaying && playingTrack === props?.preview
+                        ? handlePause()
+                        : handlePlay(props?.preview);
+                    }}
                   >
-                    <PlayCircleIcon color={"#8f95b2"} />
+                    {isPlaying && playingTrack === props?.preview ? (
+                      <motion.div
+                        initial={{ scale: 1 }}
+                        animate={{
+                          scale: [1, 0.9, 1],
+                          rotate: [0, 5, -5, 0],
+                        }}
+                        transition={{
+                          duration: 0.5,
+                          repeat: Number.POSITIVE_INFINITY,
+                          ease: "easeInOut",
+                        }}
+                        className="relative"
+                      >
+                        <PauseCircle
+                          className="relative z-10"
+                          color={"#8f95b2"}
+                        />
+                        <div
+                          className="absolute inset-0 rounded-full border-2 border-zoove-red-100"
+                          style={{
+                            clipPath: `polygon(0 0, ${progress}% 0, ${progress}% 100%, 0 100%)`,
+                            transition: "clip-path 0.3s linear",
+                            zIndex: 1,
+                          }}
+                        />
+                      </motion.div>
+                    ) : (
+                      <PlayCircleIcon color={"#8f95b2"} />
+                    )}
                   </div>
                 </div>
               </div>
