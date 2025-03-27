@@ -99,7 +99,11 @@ export default function Home() {
 
   return (
     <div className={"w-full flex justify-center px-4 md:px-8 lg:px-16"}>
-      <div className={"flex flex-col items-center py-24 relative max-w-4xl"}>
+      <div
+        className={
+          "flex flex-col items-center py-24 relative max-w-4xl min-w-0"
+        }
+      >
         <ZooveIcon height={"auto"} className="w-40 h-auto" />
         <h1
           className="animated-heading font-bold text-5xl md:text-7xl"
