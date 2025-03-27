@@ -63,7 +63,8 @@ export default function Home() {
   const { mutateAsync } = useMutation({
     mutationFn: (link: string) => orchdio().convertTrack(link),
     mutationKey: ["/v1/track/convert"],
-    onError: (error) => {
+    onError: () => {
+      // todo: more robust error handling (show different error messages for concerning errors)
       toast({
         title: "🙈 Uh-oh! That was embarrassing",
         position: "top-right",
@@ -97,12 +98,8 @@ export default function Home() {
   };
 
   return (
-    <div className={"flex flex-col items-center px-4"}>
-      <div
-        className={
-          "flex flex-col items-center py-24 relative md:mx-32 lg:mx-48"
-        }
-      >
+    <div className={"w-full flex justify-center px-4 md:px-8 lg:px-16"}>
+      <div className={"flex flex-col items-center py-24 relative max-w-4xl"}>
         <ZooveIcon height={"auto"} className="w-40 h-auto" />
         <h1
           className="animated-heading font-bold text-5xl md:text-7xl"
@@ -145,9 +142,8 @@ export default function Home() {
           <Button
             disabled={disableGoButton}
             onClick={handleGoButtonClick}
-            className={
-              "dark:text-black text-white bg-zoove-blue-100 rounded-sm h-10 md:w-48 mb-2 disabled:cursor-not-allowed disabled:opacity-50 relative overflow-hidden"
-            }
+            className={`dark:text-black text-white dark:bg-zoove-blue-100 bg-zoove-blue-400 rounded-sm h-10 md:w-48 mb-2 disabled:cursor-not-allowed disabled:opacity-50 relative overflow-hidden
+            `}
             variant={"secondary"}
           >
             <div className="flex items-center justify-center w-full relative">

@@ -1,3 +1,5 @@
+import Button from "@/components/button/button";
+import Text from "@/components/text/text";
 import { MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -24,12 +26,9 @@ export const Header = () => {
                 )}
               </div>
               {/**todo: button component*/}
-              <button
-                type={"button"}
-                className={"bg-zoove-blue-100 p-2 rounded-sm text-black"}
-              >
-                Connect account
-              </button>
+              <Button className={"bg-zoove-blue-100 p-2 rounded-sm text-black"}>
+                <Text content={"Connect platform"} />
+              </Button>
             </div>
           </div>
         </div>

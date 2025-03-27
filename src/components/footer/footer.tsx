@@ -10,8 +10,13 @@ export const Footer = () => {
             "text-zoove-gray-300 mt-8 md:mt-0 md:items-center order-2 md:order-1"
           }
         >
-          <span className={"text-white font-bold text-lg"}>😚 zoove</span>
-          <Text content={` - Copyright @${new Date().getFullYear()}.`} />
+          <span className={"text-zoove-blue-100 font-bold text-lg"}>
+            😚 zoove
+          </span>
+          <Text
+            content={` - Copyright @${new Date().getFullYear()}.`}
+            className={"dark:text-white text-black"}
+          />
           &nbsp;
           <Text
             content={
@@ -30,7 +35,7 @@ export const Footer = () => {
                 &nbsp;product.
               </span>
             }
-            className={"text-sm text-center"}
+            className={"text-sm text-center dark:text-white text-black"}
           />
         </div>
         <div className={"order-1 md:order-2 md:w-96 lg:w-[32rem]"}>

@@ -2,12 +2,12 @@ import type { HTMLProps } from "react";
 import { twMerge } from "tailwind-merge";
 
 interface InputProps extends HTMLProps<HTMLInputElement> {
-  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const Input = (props: InputProps) => {
   const mergedStyles = twMerge(
-    "px-4 py-2 text-lg border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed",
+    `px-4 py-2 text-lg ${props?.disabled ? "ring-2 ring-zoove-blue-400 opacity-50" : "ring-2 ring-zoove-blue-100"}  rounded-md focus:outline-none focus:ring-2 disabled:cursor-not-allowed`,
     props?.className,
   );
   return (
