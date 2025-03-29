@@ -26,10 +26,26 @@ class Orchdio {
 
     return trackConversionResponse?.data;
   }
+
+  async addToWaitlist(email: string, platform: string) {
+    const { data } = await this.axiosInstance.post(
+      "/v1/waitlist/add",
+      {
+        email,
+        platform,
+      },
+      {
+        headers: {
+          "x-orchdio-key": process.env.ORCHDIO_SECRET_KEY,
+        },
+      },
+    );
+    return data;
+  }
 }
 
 const orchdio = (
-  defaultToken: string = process.env.NEXT_PUBLIC_ORCHDIO__PUBLIC_API_KEY!,
+  defaultToken: string = process.env.NEXT_PUBLIC_ORCHDIO_PUBLIC_API_KEY!,
 ) => {
   return new Orchdio(defaultToken!);
 };

@@ -32,12 +32,12 @@ const TrackPlatformItem = (props: Props) => {
             sm:w-full
             md:w-full
             lg:w-full
-            xl:w-full bg-zoove-gray-100"
+            xl:w-full bg-gray-600 dark:bg-gray-600"
     >
       <CardContent>
         <div
           className={
-            "p-4 border rounded-lg flex flex-row items-center justify-between border-zoove-blue-100 dark:border-accent cursor-pointer"
+            "p-4 border rounded-lg flex flex-row items-center justify-between border-green-950 dark:border-accent cursor-pointer"
           }
         >
           <div
@@ -73,7 +73,7 @@ const TrackPlatformItem = (props: Props) => {
               width={21}
               height={21}
             />
-            <Text content={props?.title} className={"truncate"} />
+            <Text content={props?.title} className={"truncate text-white"} />
           </div>
           <div className={"flex flex-row space-x-2"}>
             <DropdownMenu>

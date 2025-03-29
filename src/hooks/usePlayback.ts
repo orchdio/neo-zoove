@@ -1,3 +1,7 @@
+/**
+ * Original author: @marvinkome. updated to support more return values.
+ */
+
 import { useEffect, useRef, useState } from "react";
 
 export const usePlayback = () => {

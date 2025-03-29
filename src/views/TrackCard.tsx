@@ -28,7 +28,8 @@ const TrackCard = (props: Props) => {
         <Card
           className={`
             w-full 
-            bg-zoove-gray-100 
+            bg-zoove-red-100
+            dark:bg-zoove-red-100
             sm:w-full 
             md:w-full 
             lg:w-full 
@@ -56,7 +57,7 @@ const TrackCard = (props: Props) => {
                 <div className="flex flex-row justify-between">
                   <Text
                     content={props?.length?.toString()}
-                    className="text-sm dark:text-gray-400 text-gray-300"
+                    className="text-sm dark:text-gray-200 text-gray-300"
                   />
                   <div
                     className={`${!props?.preview ? "opacity-40" : "opacity-100"} cursor-pointer`}
@@ -82,10 +83,10 @@ const TrackCard = (props: Props) => {
                       >
                         <PauseCircle
                           className="relative z-10"
-                          color={"#8f95b2"}
+                          color={"white"}
                         />
                         <div
-                          className="absolute inset-0 rounded-full border-2 border-zoove-red-100"
+                          className="absolute inset-0 rounded-full border-4 border-blue-800"
                           style={{
                             clipPath: `polygon(0 0, ${progress}% 0, ${progress}% 100%, 0 100%)`,
                             transition: "clip-path 0.3s linear",
@@ -94,7 +95,7 @@ const TrackCard = (props: Props) => {
                         />
                       </motion.div>
                     ) : (
-                      <PlayCircleIcon color={"#8f95b2"} />
+                      <PlayCircleIcon color={"white"} />
                     )}
                   </div>
                 </div>

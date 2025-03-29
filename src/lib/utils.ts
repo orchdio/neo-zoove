@@ -7,15 +7,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function isValidURL(url: string) {
-  try {
-    new URL(url);
-    return true;
-  } catch (err) {
-    return false;
-  }
-}
-
 // magic link domains used by platforms.
 export const PLATFORM_SHORT_LINKS = [
   "deezer.page.link",
@@ -40,13 +31,12 @@ const PLATFORM_HOSTNAMES_KV = {
   "www.music.apple.com": "applemusic",
 };
 
-// magic links are the same as shortlinks. they're links that the streaming platforms
+// magic links are the same as short links. they're links that the streaming platforms
 // provide (esp on mobile) when sharing tracks or playlists.
 export const isMagicURL = (url: string) => {
   return PLATFORM_SHORT_LINKS.some((link) => url.includes(link));
 };
 
-// todo: implement api endpoint for preview.
 export const fetchOriginalUrl = async (url: string) => {
   try {
     const l = await axios.get(`/api/preview?url=${url}`);
@@ -81,11 +71,11 @@ export const convertPlatformToResult = (platforms: Platforms) => {
   }
   const results: Array<TrackMeta & { platform: string }> = [];
 
-  // Iterate through each platform in the Platforms object
+  // iterate through each platform in the platforms object
   (Object.keys(platforms) as Array<keyof Platforms>).forEach((platformName) => {
     const track = platforms[platformName];
 
-    // Only process if the platform exists and has a track
+    // only process if the platform exists and has a track
     if (track) {
       results.push({
         platform: platformName,
@@ -108,7 +98,7 @@ export const completeMetadataFromPlatforms = (
 ): TrackMeta => {
   const completedMetadata = { ...metadata };
 
-  // Keys to check for completion (empty values)
+  // keys to check for completion (empty values)
   const keysToComplete = Object.keys(metadata).filter(
     (key) => metadata[key as keyof typeof metadata] === "",
   );
@@ -200,7 +190,7 @@ export const findEmptyKeys = (metadata: TrackMeta): string[] => {
     .map(([key]) => key);
 };
 
-// converts the platforms data from the structure from the api to a
+// converts the platforms data from the structure from the api to one used to build conversion object for tracks, for ui components.
 export const convertPlatformsToObject = (platforms: Array<[string, any]>) => {
   return platforms?.map(([platform, trackData]) => ({
     [platform]: trackData,

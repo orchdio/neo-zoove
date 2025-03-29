@@ -22,9 +22,9 @@ import { type ReactElement, useEffect, useRef, useState } from "react";
 import DancingDuckGif from "../../public/dancing-duck.gif";
 
 import Text from "@/components/text/text";
+import posthog from "posthog-js";
 
 export default function Home() {
-  // todo: capture posthog page view event on page load
   const [goButtonIsDisabled, setGoButtonIsDisabled] = useState(true);
   const [link, setLink] = useState<string>("");
 
@@ -83,6 +83,10 @@ export default function Home() {
     onSuccess: (data) => {
       setTrackResults(data);
       setSourcePlatform(extractPlatform(link) ?? "");
+      posthog.capture("conversion.track.completed", {
+        link,
+        sourcePlatform,
+      });
     },
 
     onSettled: () => {
@@ -100,7 +104,7 @@ export default function Home() {
   };
 
   return (
-    <div className={"w-full flex justify-center px-4 md:px-8 lg:px-16"}>
+    <div className={"w-full flex justify-center md:px-8 lg:px-16"}>
       <div
         className={
           "flex flex-col items-center py-24 relative max-w-4xl min-w-0"
