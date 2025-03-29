@@ -33,3 +33,21 @@ export interface TrackMeta {
   length: string;
   preview?: string;
 }
+
+export interface PlaylistConversionHttpResponse {
+  data: PlaylistConversionData;
+  message: string;
+  status: number;
+}
+
+export interface PlaylistConversionData {
+  task_id: string;
+  payload: any;
+  status: string;
+}
+
+export interface WebhookEventBase {
+  event_type: string;
+  platform: string;
+  task_id: string;
+}

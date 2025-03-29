@@ -22,6 +22,7 @@ import { type ReactElement, useEffect, useRef, useState } from "react";
 import DancingDuckGif from "../../public/dancing-duck.gif";
 
 import Text from "@/components/text/text";
+import { PlatformSelectionSelect } from "@/views/PlatformSelectionSelect";
 import posthog from "posthog-js";
 
 export default function Home() {
@@ -33,20 +34,26 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [sourcePlatform, setSourcePlatform] = useState<string>();
 
+  const [playlistUniqueId, setPlaylistUniqueId] = useState<string>();
+  const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const maintenanceMode =
     process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "maintenance";
   const disableGoButton = maintenanceMode || goButtonIsDisabled;
 
-  const { resolveLink } = useLinkResolver({
+  const { resolveLink, isPlaylist: linkIsPlaylist } = useLinkResolver({
     onLinkResolved: (resolvedLink) => {
       setLink(resolvedLink);
 
       if (!resolvedLink) {
         setGoButtonIsDisabled(true);
+        setIsPlaylist(false);
         return;
       }
+
+      setIsPlaylist(true);
       setGoButtonIsDisabled(false);
     },
   });
@@ -62,6 +69,7 @@ export default function Home() {
     }
   }, [trackResults, sourcePlatform]);
 
+  // track conversion mutation. A track conversion is a normal POST request to orchdio api.
   const { mutateAsync } = useMutation({
     mutationFn: (link: string) => orchdio().convertTrack(link),
     mutationKey: ["/v1/track/convert"],
@@ -95,8 +103,84 @@ export default function Home() {
     },
   });
 
+  // useEffect for playlist things. use this to do echo sse event
+  useEffect(() => {
+    const eventSource = new EventSource("/api/sse/playlist");
+    if (isPlaylist) {
+      console.log("Trying to connect");
+
+      // for testing purposes...
+      eventSource.onopen = (e) => {};
+      eventSource.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload?.event_type === "conversion_meta") {
+            console.log("Should show playlist metadata here...");
+          }
+        } catch (e) {
+          console.log("SSE event error:");
+          console.error(e);
+        }
+      };
+
+      eventSource.onerror = (e) => {
+        console.log("SSE event error");
+        console.log(e);
+
+        return eventSource.close();
+      };
+    } else {
+      console.log("No longer connecting playlist");
+    }
+    return () => {
+      console.log("Running SSE effect cleanup fn");
+      eventSource.close();
+    };
+  }, [isPlaylist]);
+
+  // playlist conversion mutation
+  // const { mutateAsync: playlistMutateAsync } = useMutation({
+  //   mutationFn: (link: string) => orchdio().convertPlaylist(link),
+  //   mutationKey: ["/v1/playlist/convert"],
+  //   onError: () => {
+  //     // todo: more robust error handling (show different error messages for concerning errors)
+  //     toast({
+  //       title: "🙈 Uh-oh! That was embarrassing",
+  //       position: "top-right",
+  //       description: (
+  //         <Text
+  //           content={"Something went wrong, please try again."}
+  //           className={"text-black"}
+  //         />
+  //       ),
+  //       variant: "warning",
+  //     });
+  //   },
+  //
+  //   onSuccess: (data) => {
+  //     setPlaylistUniqueId(data);
+  //     // setTrackResults(data);
+  //     // setSourcePlatform(extractPlatform(link) ?? "");
+  //     // posthog.capture("conversion.track.completed", {
+  //     //   link,
+  //     //   sourcePlatform,
+  //     // });
+  //   },
+  //
+  //   onSettled: () => {
+  //     setIsLoading(false);
+  //     setGoButtonIsDisabled(false);
+  //   },
+  // });
+
   const handleGoButtonClick = async () => {
     // todo:implement server sent events (playlist conversions)
+
+    console.log("Go button clicked... info is", link);
+    if (link && isPlaylist) {
+      console.log("Handling playlist....");
+      // todo: make request to start playlist conversion here, get the entity id back and set in state, then listen for the variable change in useeffect for sse flow
+    }
 
     setIsLoading(true);
     setGoButtonIsDisabled(true);
@@ -138,23 +222,32 @@ export default function Home() {
           just one link.
         </span>
 
-        <div className="w-full mt-10 flex flex-col space-y-2 md:flex-row md:justify-between md:items-center md:space-x-3">
-          <Input
-            disabled={maintenanceMode}
-            placeholder="Paste track or playlist link"
-            value={link}
-            onChange={async (e) => {
-              setLink(e.target.value);
-              await resolveLink(e.target.value);
-            }}
-            className={"w-full flex-auto h-14 rounded-sm px-2"}
-            ref={inputRef}
-          />
+        <div className="w-full mt-10 flex flex-col space-y-2 md:flex-row md:justify-between md:space-x-3">
+          <div className={"w-full flex flex-col items-start"}>
+            <Input
+              disabled={maintenanceMode}
+              placeholder="Paste track or playlist link"
+              value={link}
+              onChange={async (e) => {
+                setLink(e.target.value);
+                await resolveLink(e.target.value);
+              }}
+              className={"w-full flex-auto h-14 rounded-sm px-2"}
+              ref={inputRef}
+            />
+
+            {/** target platforms dropdown. Shown only if the pasted link is a playlist*/}
+            {isPlaylist && (
+              <div className={"mt-2 w-full md:w-fit"}>
+                <PlatformSelectionSelect className={"w-full"} />
+              </div>
+            )}
+          </div>
           <Button
             disabled={disableGoButton}
             onClick={handleGoButtonClick}
             className={`dark:text-black text-white dark:bg-zoove-blue-100 bg-zoove-blue-400 rounded-sm h-10 md:w-48 mb-2 disabled:cursor-not-allowed disabled:opacity-50 relative overflow-hidden
-            `}
+            md:h-14`}
             variant={"secondary"}
           >
             <div className="flex items-center justify-center w-full relative">

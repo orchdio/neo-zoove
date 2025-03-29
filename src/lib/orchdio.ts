@@ -1,4 +1,7 @@
-import type { TrackConversionPayload } from "@/lib/blueprint";
+import type {
+  PlaylistConversionData,
+  TrackConversionPayload,
+} from "@/lib/blueprint";
 import axios, { type AxiosInstance } from "axios";
 
 class Orchdio {
@@ -41,6 +44,18 @@ class Orchdio {
       },
     );
     return data;
+  }
+
+  async convertPlaylist(
+    link: string,
+    targetPlatform: string,
+  ): Promise<PlaylistConversionData> {
+    const response = await this.axiosInstance.post("/v1/playlist/convert", {
+      link,
+      target_platform: targetPlatform,
+    });
+
+    return response?.data;
   }
 }
 

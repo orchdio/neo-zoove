@@ -19,14 +19,15 @@ export const useLinkResolver = ({
 }: UseLinkResolverOptions = {}) => {
   const [isResolving, setIsResolving] = useState(false);
   const [resolvedLink, setResolvedLink] = useState<string | null>(null);
+  const [isPlaylist, setIsPlaylist] = useState(false);
 
   const resolveLink = useCallback(
     async (link: string) => {
-      // Check if it's a magic/short URL
+      // check if it's a magic/short URL
       const isShortLink = isMagicURL(link);
 
       if (!isShortLink) {
-        // If not a short link, return the original link
+        // if not a short link, return the original link
         onLinkResolved?.(link);
         return link;
       }
@@ -36,7 +37,7 @@ export const useLinkResolver = ({
       try {
         const result = await fetchOriginalUrl(link);
 
-        // Check for unsupported entities
+        // check for unsupported entities
         const unsupportedEntity = unsupportedEntities.find((entity) =>
           result.includes(entity),
         );
@@ -59,12 +60,13 @@ export const useLinkResolver = ({
           return null;
         }
 
-        // Handle playlist scenario (placeholder for now)
+        // handle playlist scenario (placeholder for now)
         if (result?.preview?.url.includes("playlist")) {
           // Todo: Implement playlist handling
+          setIsPlaylist(true);
         }
 
-        // Strip query parameters
+        // strip query parameters
         const strippedURL =
           result?.indexOf("?") !== -1
             ? (result?.substring(0, result?.indexOf("?")) as string)
@@ -73,7 +75,7 @@ export const useLinkResolver = ({
         setResolvedLink(strippedURL);
         setIsResolving(false);
 
-        // Call the optional callback
+        // call the optional callback
         onLinkResolved?.(strippedURL);
 
         return strippedURL;
@@ -105,5 +107,6 @@ export const useLinkResolver = ({
     resolveLink,
     isResolving,
     resolvedLink,
+    isPlaylist,
   };
 };

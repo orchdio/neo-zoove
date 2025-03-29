@@ -88,7 +88,7 @@ const Waitlist = () => {
         variant: "warning",
       });
     },
-    mutationKey: ["/v1/waitlist/add"],
+    mutationKey: ["/waitlist/add"],
   });
 
   const onSubmit = form.handleSubmit(async (data) => {
