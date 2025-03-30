@@ -11,12 +11,13 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   className?: string;
+  onChange?: (value: string) => void;
 }
 
 export const PlatformSelectionSelect = (props: Props) => {
   const mergedStyles = cn(props.className);
   return (
-    <Select>
+    <Select onValueChange={props.onChange}>
       <SelectTrigger className={mergedStyles}>
         <SelectValue placeholder={"Select target platform"} />
       </SelectTrigger>

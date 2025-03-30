@@ -18,13 +18,22 @@ export default async function handler(
     })}\n\n`,
   );
 
-  // echo event
-  Events.on("conversion_meta", (event) => {
-    console.log("Run playlist meta rendering....");
+  Events.on("hello", (data) => {
+    console.log("echoed event", data);
     res.write(
       `data: ${JSON.stringify({
-        event_type: "conversion_meta",
-        message: "this should contain the meta.",
+        event_type: "meta",
+      })}\n\n`,
+    );
+  });
+
+  // echo event
+  Events.on("playlist_conversion_metadata", (event) => {
+    console.log("Run playlist meta rendering....", event);
+    res.write(
+      `data: ${JSON.stringify({
+        event_type: "playlist_conversion_metadata",
+        message: event,
       })}\n\n`,
     );
   });

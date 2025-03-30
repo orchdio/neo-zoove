@@ -59,7 +59,6 @@ export function toast(props: ToastProps) {
       ...props.style,
       ...variantsStyles[props.variant ?? "default"],
     },
-    duration: 2000,
   });
 }
 

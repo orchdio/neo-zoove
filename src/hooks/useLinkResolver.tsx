@@ -19,7 +19,6 @@ export const useLinkResolver = ({
 }: UseLinkResolverOptions = {}) => {
   const [isResolving, setIsResolving] = useState(false);
   const [resolvedLink, setResolvedLink] = useState<string | null>(null);
-  const [isPlaylist, setIsPlaylist] = useState(false);
 
   const resolveLink = useCallback(
     async (link: string) => {
@@ -58,12 +57,6 @@ export const useLinkResolver = ({
 
           setIsResolving(false);
           return null;
-        }
-
-        // handle playlist scenario (placeholder for now)
-        if (result?.preview?.url.includes("playlist")) {
-          // Todo: Implement playlist handling
-          setIsPlaylist(true);
         }
 
         // strip query parameters
@@ -107,6 +100,5 @@ export const useLinkResolver = ({
     resolveLink,
     isResolving,
     resolvedLink,
-    isPlaylist,
   };
 };
