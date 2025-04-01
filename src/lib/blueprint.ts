@@ -78,6 +78,7 @@ export interface PlaylistMetaInfo {
     title: string;
     url: string;
     nb_tracks: number;
+    description: string;
   };
   platform: string;
   unique_id: string;

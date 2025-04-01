@@ -18,18 +18,9 @@ export default async function handler(
     })}\n\n`,
   );
 
-  Events.on("hello", (data) => {
-    console.log("echoed event", data);
-    res.write(
-      `data: ${JSON.stringify({
-        event_type: "meta",
-      })}\n\n`,
-    );
-  });
-
   // echo event
-  Events.on("playlist_conversion_metadata", (event) => {
-    console.log("Run playlist meta rendering....", event);
+  Events.once("playlist_conversion_metadata", (event) => {
+    console.log("Playlist metadata conversion event....");
     res.write(
       `data: ${JSON.stringify({
         event_type: "playlist_conversion_metadata",
@@ -38,20 +29,32 @@ export default async function handler(
     );
   });
 
+  Events.once("playlist_conversion_done", (event) => {
+    console.log("Playlist done event....");
+    res.write(
+      `data: ${JSON.stringify({
+        event_type: "playlist_conversion_done",
+        message: event,
+      })}\n\n`,
+    );
+  });
+
   // Keep connection alive
-  const keepAlive = setInterval(() => {
-    res.write(": keepAlive\n\n");
-  }, 1000);
+  // const keepAlive = setInterval(() => {
+  //   res.write(": keepAlive\n\n");
+  // }, 1000);
 
   res.on("close", () => {
     console.log("close event handler");
-    clearInterval(keepAlive);
+    // clearInterval(keepAlive);
+    Events.removeAllListeners();
     res.end();
   });
 
   res.socket?.on("close", () => {
     console.log("close event handler socket");
-    clearInterval(keepAlive);
+    // clearInterval(keepAlive);
+    Events.removeAllListeners();
     res.end();
   });
 }

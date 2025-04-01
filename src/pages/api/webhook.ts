@@ -45,10 +45,19 @@ export default async function handler(
               `emitting event "conversion_metadata:${eventType?.data?.task_id}"`,
             );
             Events.emit("playlist_conversion_metadata", eventType);
+
+            // Events.off("playlist_conversion_metadata", (ev) => {
+            //   console.log("Removing event listener here...");
+            // });
+            break;
+
+          case "playlist_conversion_done":
+            Events.emit("playlist_conversion_done", eventType);
             break;
           default:
-            console.log(eventType);
             console.log("Unknown event type received.");
+            console.log("Unknown event payload...");
+            console.log(eventType);
             // conversionEvents.emit("unhandled", "naan");
             // todo: move this into a const.
             // conversionEvents.emit("unhandled");

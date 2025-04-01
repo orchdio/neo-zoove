@@ -46,6 +46,9 @@ export default function Home() {
   const [playlistUniqueId, setPlaylistUniqueId] = useState<string>();
   const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
 
+  const [isConvertingPlaylist, setIsConvertingPlaylist] =
+    useState<boolean>(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const maintenanceMode =
@@ -109,36 +112,111 @@ export default function Home() {
       });
     },
 
-    // onSettled: () => {
-    //   setIsLoading(false);
-    //   setGoButtonIsDisabled(false);
-    // },
+    onSettled: () => {
+      setIsLoading(false);
+      setGoButtonIsDisabled(false);
+    },
   });
 
-  // useEffect for playlist things. use this to do echo sse event
+  // useEventSourceListener(
+  //   eventSource,
+  //   ["playlist_conversion_metadata", "playlist_conversion_done"],
+  //   (evt) => {
+  //     console.log("Event source listener is");
+  //     console.log(evt);
+  //   },
+  // );
+
+  // useEffect for playlist conversion component states.
+  // useEffect(() => {
+  //   let eventSource: EventSource = null;
+  //
+  //   if (isPlaylist && playlistUniqueId) {
+  //     // Close any existing connection first
+  //     if (eventSource) {
+  //       eventSource.close();
+  //     }
+  //
+  //     // Create new connection
+  //     eventSource = new EventSource("/api/sse/playlist");
+  //     console.log("Trying to connect");
+  //
+  //     eventSource.onopen = (e) => {
+  //       console.log("SSE connection opened");
+  //     };
+  //
+  //     eventSource.onmessage = (event) => {
+  //       try {
+  //         const payload = JSON.parse(event.data);
+  //
+  //         if (payload?.event_type === "playlist_conversion_metadata") {
+  //           console.log("Meta", payload);
+  //
+  //           const playlistMetaInfo = payload?.message?.data as PlaylistMetaInfo;
+  //           // set the playlist meta info here...
+  //           setPlaylistMeta({
+  //             platform: playlistMetaInfo?.platform,
+  //             artist: "",
+  //             cover: playlistMetaInfo?.meta?.cover,
+  //             description: playlistMetaInfo?.meta?.description,
+  //             link: playlistMetaInfo?.meta?.url,
+  //             length: playlistMetaInfo?.meta?.length,
+  //             title: playlistMetaInfo?.meta?.title,
+  //             owner: playlistMetaInfo?.meta?.owner,
+  //             id: playlistMetaInfo?.unique_id,
+  //             nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
+  //           });
+  //
+  //           setIsConvertingPlaylist(true);
+  //           setIsLoading(false);
+  //           setGoButtonIsDisabled(false);
+  //
+  //           return eventSource.close();
+  //         }
+  //       } catch (e) {
+  //         console.error(e);
+  //         setIsConvertingPlaylist(false);
+  //       }
+  //     };
+  //
+  //     eventSource.onerror = (e) => {
+  //       console.error("SSE error:", e);
+  //       eventSource.close();
+  //       eventSource = null;
+  //     };
+  //   }
+  //
+  //   // Cleanup function
+  //   return () => {
+  //     if (eventSource) {
+  //       console.log("Running SSE effect cleanup fn");
+  //       eventSource.close();
+  //       eventSource = null;
+  //     }
+  //   };
+  // }, [isPlaylist, playlistUniqueId]);
+
   useEffect(() => {
-    const eventSource = new EventSource("/api/sse/playlist");
     if (isPlaylist && playlistUniqueId) {
+      const eventSource = new EventSource("/api/sse/playlist");
       console.log("Trying to connect");
 
-      // for testing purposes...
       eventSource.onopen = (e) => {};
       eventSource.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data);
 
           if (payload?.event_type === "playlist_conversion_metadata") {
-            console.log("Meta", payload);
-            const playlistMetaInfo = payload?.message?.data as PlaylistMetaInfo;
-            // console.log("Should show playlist metadata here...");
-            // console.log(payload);
+            console.log("Meta");
+            console.log(payload?.message?.data);
 
+            const playlistMetaInfo = payload?.message?.data as PlaylistMetaInfo;
             // set the playlist meta info here...
             setPlaylistMeta({
               platform: playlistMetaInfo?.platform,
               artist: "",
               cover: playlistMetaInfo?.meta?.cover,
-              description: "",
+              description: playlistMetaInfo?.meta?.description,
               link: playlistMetaInfo?.meta?.url,
               length: playlistMetaInfo?.meta?.length,
               title: playlistMetaInfo?.meta?.title,
@@ -146,24 +224,38 @@ export default function Home() {
               id: playlistMetaInfo?.unique_id,
               nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
             });
+
+            setIsConvertingPlaylist(true);
+            setIsLoading(false);
+            setGoButtonIsDisabled(false);
+          }
+
+          if (payload?.event_type === "playlist_conversion_track") {
+            console.log(
+              "Track conversion event... show appropriate state with this data",
+            );
+            console.log(payload);
+          }
+
+          if (payload?.event_type === "playlist_conversion_done") {
+            console.log("Conversion done event...");
+            // console.log("track conversion result is...")
+            setIsConvertingPlaylist(false);
           }
         } catch (e) {
-          console.log("SSE event error:");
           console.error(e);
+          setIsConvertingPlaylist(false);
         }
       };
 
       eventSource.onerror = (e) => {
-        console.log("SSE event error");
-        console.log(e);
-
         return eventSource.close();
       };
+      return () => {
+        console.log("Running SSE effect cleanup fn");
+        eventSource.close();
+      };
     }
-    return () => {
-      console.log("Running SSE effect cleanup fn");
-      eventSource.close();
-    };
   }, [isPlaylist, playlistUniqueId]);
 
   // playlist conversion mutation
@@ -187,8 +279,6 @@ export default function Home() {
     },
 
     onSuccess: (data) => {
-      console.log("Playlist conversion initial request done.. data is");
-      console.log(data);
       setPlaylistUniqueId(data?.task_id);
       toast({
         title: "Your playlist conversion has started",
@@ -204,17 +294,6 @@ export default function Home() {
         variant: "success",
         duration: 4000,
       });
-      // setTrackResults(data);
-      // setSourcePlatform(extractPlatform(link) ?? "");
-      // posthog.capture("conversion.track.completed", {
-      //   link,
-      //   sourcePlatform,
-      // });
-    },
-
-    onSettled: () => {
-      setIsLoading(false);
-      setGoButtonIsDisabled(false);
     },
   });
 
@@ -377,15 +456,46 @@ export default function Home() {
           <PlaylistCard
             title={playlistMeta?.title ?? ""}
             description={playlistMeta?.description ?? ""}
-            artist={playlistMeta?.artist ?? ""}
             length={playlistMeta?.length ?? ""}
             cover={playlistMeta?.cover ?? ""}
             link={playlistMeta?.link ?? ""}
             owner={playlistMeta?.owner ?? ""}
           >
-            {!isLoading && isPlaylist && playlistUniqueId && (
-              <span className={"text-xs ml-2"}>Showing 2 of 10 results</span>
-            )}
+            {!isLoading &&
+              isPlaylist &&
+              playlistUniqueId &&
+              !isConvertingPlaylist && (
+                <span
+                  className={"text-xs ml-2"}
+                >{`Showing 1 of ${playlistMeta?.nb_tracks} tracks`}</span>
+              )}
+
+            {!isLoading &&
+              isPlaylist &&
+              playlistUniqueId &&
+              isConvertingPlaylist && (
+                <div className={"flex flex-row justify-between"}>
+                  <span className={"text-xs ml-2"}>
+                    Converted 1 of 10 tracks
+                  </span>
+                  <AnimatePresence>
+                    <motion.div
+                      initial={{ opacity: 0, x: -20, scale: 0.5 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, x: 20, scale: 0.5 }}
+                      transition={{
+                        duration: 0.3,
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 20,
+                      }}
+                      className="absolute left-1/2 -translate-x-1/2"
+                    >
+                      <Loader className="animate-spin" />
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              )}
             <PlaylistCardItem
               data={[
                 {

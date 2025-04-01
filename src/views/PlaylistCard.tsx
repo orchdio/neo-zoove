@@ -1,5 +1,9 @@
 import Text from "@/components/text/text";
+import { toast } from "@/components/toast/toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { capitalizeFirstLetter } from "@/lib/utils";
+import { useCopyToClipboard } from "@uidotdev/usehooks";
+import { CopyIcon, PlusCircleIcon, ShareIcon } from "lucide-react";
 import Image from "next/image";
 import type React from "react";
 
@@ -7,7 +11,6 @@ interface Props {
   title: string;
   description: string;
   owner?: string;
-  artist: string;
   length: string | number;
   cover: string;
   id?: string;
@@ -16,6 +19,7 @@ interface Props {
   children?: React.ReactNode;
 }
 const TrackCard = (props: Props) => {
+  const [link, copyToClipboard] = useCopyToClipboard();
   return (
     <div className="w-full">
       <div className="w-full space-y-2">
@@ -45,20 +49,50 @@ const TrackCard = (props: Props) => {
                 <h2 className="font-bold text-xl line-clamp-2 text-white">
                   {props?.title}
                 </h2>
+                <span className={"font-semibold line-clamp-2 text-xs"}>
+                  {props.description}
+                </span>
                 {props?.owner && (
-                  <span className={"italic"}>{`owned by ${props?.owner}`}</span>
+                  <span
+                    className={"text-xs"}
+                  >{`owned by ${props?.owner}`}</span>
                 )}
 
                 {!props?.owner && (
-                  <span className={"italic"}>{"no owner"}</span>
+                  <span className={"italic text-xs text-zoove-gray-300"}>
+                    {"unknown owner"}
+                  </span>
                 )}
-                <p className="text-sm text-gray-100 line-clamp-2">
-                  {props?.artist}
-                </p>
+
                 <Text
-                  content={props?.length?.toString()}
-                  className="text-sm dark:text-gray-200 text-gray-300"
+                  content={"4 songs, 1hr 23mins"}
+                  className="text-xs dark:text-gray-200 text-gray-300"
                 />
+                <div className={"flex flex-row justify-between mt-2"}>
+                  <div className={"flex flex-row items-center space-x-2"}>
+                    <PlusCircleIcon width={16} height={16} color={"white"} />
+                    <CopyIcon
+                      width={16}
+                      height={16}
+                      onClick={async () => {
+                        await copyToClipboard(props?.link);
+                        toast({
+                          title: "Playlist link copied",
+                          description: (
+                            <Text
+                              className={"text-black"}
+                              content={`📋 Your ${capitalizeFirstLetter(props?.platform ?? "")} playlist link has been copied to clipboard`}
+                            />
+                          ),
+                          position: "top-right",
+                          variant: "success",
+                        });
+                      }}
+                      color={"white"}
+                    />
+                  </div>
+                  <ShareIcon width={16} height={16} color={"white"} />
+                </div>
               </div>
             </div>
           </CardContent>
