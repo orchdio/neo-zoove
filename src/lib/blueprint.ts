@@ -17,6 +17,7 @@ export interface Track {
   artists: string[];
   released: string;
   duration: string;
+  duration_milli: number;
   explicit: boolean;
   title: string;
   preview: string;
@@ -82,4 +83,29 @@ export interface PlaylistMetaInfo {
   };
   platform: string;
   unique_id: string;
+}
+
+export interface PlaylistTrackConversionData {
+  event_type: string;
+  task_id: string;
+  tracks: [{ platform: string; track: Track }];
+}
+
+export interface PlaylistResultItem {
+  platform: "spotify" | "applemusic" | "deezer" | "tidal" | "ytmusic" | string;
+  artist: string;
+  link: string;
+  title: string;
+  preview?: string;
+  explicit?: boolean;
+}
+
+export interface PlaylistMissingTrackEventPayload {
+  event_type: string;
+  meta: {
+    item: Track;
+    missing_platform: string;
+    platform: string;
+    url: string;
+  };
 }

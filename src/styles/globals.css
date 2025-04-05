@@ -4,6 +4,8 @@
 /*---break---*/
 @custom-variant dark (&:is(.dark *));
 
+@plugin 'tailwind-scrollbar';
+
 /*:root {*/
 /*  --background: #ffffff;*/
 /*  --foreground: #171717;*/

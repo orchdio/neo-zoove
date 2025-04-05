@@ -8,6 +8,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { PlaylistResultItem } from "@/lib/blueprint";
 import { getPlatformPrettyNameByKey } from "@/lib/utils";
 import { useCopyToClipboard } from "@uidotdev/usehooks";
 import { EllipsisIcon, ExternalLinkIcon } from "lucide-react";
@@ -15,25 +16,13 @@ import { useTheme } from "next-themes";
 import Image from "next/image";
 
 interface Props {
-  data: Array<{
-    platform:
-      | "spotify"
-      | "applemusic"
-      | "deezer"
-      | "tidal"
-      | "ytmusic"
-      | string;
-    artist: string;
-    link: string;
-    title: string;
-  }>;
+  data: Array<PlaylistResultItem>;
 }
 
 const TrackPlatformItem = (props: Props) => {
   const { theme } = useTheme();
 
-  const [copiedText, copyToClipboard] = useCopyToClipboard();
-
+  const [_, copyToClipboard] = useCopyToClipboard();
   return (
     <Card
       className=" w-full
@@ -43,16 +32,10 @@ const TrackPlatformItem = (props: Props) => {
             xl:w-full bg-gray-600 dark:bg-gray-600 relative"
     >
       <CardContent>
-        {/*<div*/}
-        {/*  className={*/}
-        {/*    "absolute top-2 left-4 text-sm mx-2 flex flex-row justify-between items-center right-4"*/}
-        {/*  }*/}
-        {/*>*/}
-        {/*  <span className={"text-xs"}>Showing 2 results of 10</span>*/}
-        {/*  /!*<ChevronDownIcon width={20} height={20} />*!/*/}
-        {/*</div>*/}
         <div className={"space-y-2"}>
-          {props?.data?.map((item, index) => {
+          {/*{pick(props?.data, 20)?.map((itemRows, index) => {*/}
+          {/*  return (*/}
+          {props?.data.map((item, index) => {
             return (
               <div
                 key={item.link}
@@ -122,6 +105,8 @@ const TrackPlatformItem = (props: Props) => {
               </div>
             );
           })}
+          {/*  )*/}
+          {/*})}*/}
 
           {/*<div*/}
           {/*  className={*/}

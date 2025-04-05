@@ -16,6 +16,7 @@ interface Props {
   id?: string;
   link: string;
   platform?: string;
+  nb_tracks: number;
   children?: React.ReactNode;
 }
 const TrackCard = (props: Props) => {
@@ -65,7 +66,7 @@ const TrackCard = (props: Props) => {
                 )}
 
                 <Text
-                  content={"4 songs, 1hr 23mins"}
+                  content={`${props?.nb_tracks && props?.nb_tracks === 1 ? `${props?.nb_tracks} track` : `${props?.nb_tracks} tracks`} ${props?.length}`}
                   className="text-xs dark:text-gray-200 text-gray-300"
                 />
                 <div className={"flex flex-row justify-between mt-2"}>

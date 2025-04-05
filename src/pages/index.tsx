@@ -1,15 +1,18 @@
 import Button from "@/components/button/button";
 import Input from "@/components/input/input";
 import Layout from "@/components/layout";
-import { toast } from "@/components/toast/toast";
 import ZooveIcon from "@/components/zooveicon";
 import { useLinkResolver } from "@/hooks/useLinkResolver";
 import type {
   PlaylistMeta,
   PlaylistMetaInfo,
+  PlaylistMissingTrackEventPayload,
+  PlaylistResultItem,
+  PlaylistTrackConversionData,
   TrackConversionPayload,
   TrackMeta,
 } from "@/lib/blueprint";
+import Events from "@/lib/events";
 import orchdio from "@/lib/orchdio";
 import {
   buildTrackResultMetadata,
@@ -17,20 +20,24 @@ import {
   extractPlatform,
 } from "@/lib/utils";
 import HeadIcons from "@/views/HeadIcons";
+import { MissingTracksDialog } from "@/views/MissingTracksDialog";
+import { PlatformSelectionSelect } from "@/views/PlatformSelectionSelect";
+import PlaylistCard from "@/views/PlaylistCard";
+import PlaylistCardItem from "@/views/PlaylistCardItem";
+import ScrollableResults from "@/views/ScrollableResults";
 import TrackCard from "@/views/TrackCard";
 import TrackPlatformItem from "@/views/TrackPlatformItem";
+import {
+  PlaylistConversionStartedToast,
+  UnknownErrorToast,
+} from "@/views/actionToasts";
 import { useMutation } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader } from "lucide-react";
 import Image from "next/image";
+import posthog from "posthog-js";
 import { type ReactElement, useEffect, useRef, useState } from "react";
 import DancingDuckGif from "../../public/dancing-duck.gif";
-
-import Text from "@/components/text/text";
-import { PlatformSelectionSelect } from "@/views/PlatformSelectionSelect";
-import PlaylistCard from "@/views/PlaylistCard";
-import PlaylistCardItem from "@/views/PlaylistCardItem";
-import posthog from "posthog-js";
 
 export default function Home() {
   const [goButtonIsDisabled, setGoButtonIsDisabled] = useState(true);
@@ -45,7 +52,34 @@ export default function Home() {
 
   const [playlistUniqueId, setPlaylistUniqueId] = useState<string>();
   const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
+  const [missingTracks, setMissingTracks] = useState<
+    {
+      title: string;
+      platform: string;
+      url: string;
+    }[]
+  >([
+    {
+      title: "",
+      platform: "",
+      url: "",
+    },
+  ]);
 
+  const [playlistResultItems, setPlaylistResultItems] = useState<
+    PlaylistResultItem[][]
+  >([
+    [
+      {
+        platform: "",
+        artist: "",
+        link: "",
+        title: "",
+      },
+    ],
+  ]);
+
+  const [resultCount, setResultCount] = useState<number>(0);
   const [isConvertingPlaylist, setIsConvertingPlaylist] =
     useState<boolean>(false);
 
@@ -62,6 +96,8 @@ export default function Home() {
       if (!resolvedLink) {
         setGoButtonIsDisabled(true);
         setIsPlaylist(false);
+
+        setIsConvertingPlaylist(false);
         return;
       }
 
@@ -90,17 +126,7 @@ export default function Home() {
     mutationKey: ["/v1/track/convert"],
     onError: () => {
       // todo: more robust error handling (show different error messages for concerning errors)
-      toast({
-        title: "🙈 Uh-oh! That was embarrassing",
-        position: "top-right",
-        description: (
-          <Text
-            content={"Something went wrong, please try again."}
-            className={"text-black"}
-          />
-        ),
-        variant: "warning",
-      });
+      UnknownErrorToast();
     },
 
     onSuccess: (data) => {
@@ -115,91 +141,16 @@ export default function Home() {
     onSettled: () => {
       setIsLoading(false);
       setGoButtonIsDisabled(false);
+      // reset playlist rendering condition states.
+      setIsPlaylist(false);
+      setPlaylistUniqueId("");
     },
   });
 
-  // useEventSourceListener(
-  //   eventSource,
-  //   ["playlist_conversion_metadata", "playlist_conversion_done"],
-  //   (evt) => {
-  //     console.log("Event source listener is");
-  //     console.log(evt);
-  //   },
-  // );
-
-  // useEffect for playlist conversion component states.
-  // useEffect(() => {
-  //   let eventSource: EventSource = null;
-  //
-  //   if (isPlaylist && playlistUniqueId) {
-  //     // Close any existing connection first
-  //     if (eventSource) {
-  //       eventSource.close();
-  //     }
-  //
-  //     // Create new connection
-  //     eventSource = new EventSource("/api/sse/playlist");
-  //     console.log("Trying to connect");
-  //
-  //     eventSource.onopen = (e) => {
-  //       console.log("SSE connection opened");
-  //     };
-  //
-  //     eventSource.onmessage = (event) => {
-  //       try {
-  //         const payload = JSON.parse(event.data);
-  //
-  //         if (payload?.event_type === "playlist_conversion_metadata") {
-  //           console.log("Meta", payload);
-  //
-  //           const playlistMetaInfo = payload?.message?.data as PlaylistMetaInfo;
-  //           // set the playlist meta info here...
-  //           setPlaylistMeta({
-  //             platform: playlistMetaInfo?.platform,
-  //             artist: "",
-  //             cover: playlistMetaInfo?.meta?.cover,
-  //             description: playlistMetaInfo?.meta?.description,
-  //             link: playlistMetaInfo?.meta?.url,
-  //             length: playlistMetaInfo?.meta?.length,
-  //             title: playlistMetaInfo?.meta?.title,
-  //             owner: playlistMetaInfo?.meta?.owner,
-  //             id: playlistMetaInfo?.unique_id,
-  //             nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
-  //           });
-  //
-  //           setIsConvertingPlaylist(true);
-  //           setIsLoading(false);
-  //           setGoButtonIsDisabled(false);
-  //
-  //           return eventSource.close();
-  //         }
-  //       } catch (e) {
-  //         console.error(e);
-  //         setIsConvertingPlaylist(false);
-  //       }
-  //     };
-  //
-  //     eventSource.onerror = (e) => {
-  //       console.error("SSE error:", e);
-  //       eventSource.close();
-  //       eventSource = null;
-  //     };
-  //   }
-  //
-  //   // Cleanup function
-  //   return () => {
-  //     if (eventSource) {
-  //       console.log("Running SSE effect cleanup fn");
-  //       eventSource.close();
-  //       eventSource = null;
-  //     }
-  //   };
-  // }, [isPlaylist, playlistUniqueId]);
-
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     if (isPlaylist && playlistUniqueId) {
       const eventSource = new EventSource("/api/sse/playlist");
-      console.log("Trying to connect");
 
       eventSource.onopen = (e) => {};
       eventSource.onmessage = (event) => {
@@ -207,11 +158,7 @@ export default function Home() {
           const payload = JSON.parse(event.data);
 
           if (payload?.event_type === "playlist_conversion_metadata") {
-            console.log("Meta");
-            console.log(payload?.message?.data);
-
             const playlistMetaInfo = payload?.message?.data as PlaylistMetaInfo;
-            // set the playlist meta info here...
             setPlaylistMeta({
               platform: playlistMetaInfo?.platform,
               artist: "",
@@ -231,17 +178,50 @@ export default function Home() {
           }
 
           if (payload?.event_type === "playlist_conversion_track") {
-            console.log(
-              "Track conversion event... show appropriate state with this data",
-            );
-            console.log(payload);
+            const itemData: PlaylistTrackConversionData =
+              payload?.message?.data;
+            const trackItems = itemData.tracks.map((trackInfo) => {
+              const item: PlaylistResultItem = {
+                link: trackInfo.track.url,
+                explicit: trackInfo.track.explicit,
+                artist: trackInfo.track.artists.join(", "),
+                platform: trackInfo.platform,
+                title: trackInfo.track.title,
+                preview: trackInfo.track.preview,
+              };
+
+              return item;
+            });
+
+            setPlaylistResultItems((prevItems) => [...prevItems, trackItems]);
+            setResultCount((prevState) => prevState + 1);
+            return;
+          }
+
+          if (payload?.event_type === "playlist_conversion_missing_track") {
+            console.log(JSON.stringify(payload?.message, null, 2));
+
+            const metaPayload = payload?.message
+              ?.data as PlaylistMissingTrackEventPayload;
+
+            console.log("Missing track payload is", metaPayload);
+            setMissingTracks((prevState) => [
+              ...prevState,
+              {
+                title: metaPayload?.meta?.item?.title,
+                platform: metaPayload?.meta?.platform,
+                url: metaPayload?.meta?.url,
+              },
+            ]);
+            return;
           }
 
           if (payload?.event_type === "playlist_conversion_done") {
-            console.log("Conversion done event...");
-            // console.log("track conversion result is...")
             setIsConvertingPlaylist(false);
+            return;
           }
+
+          return Events.removeAllListeners();
         } catch (e) {
           console.error(e);
           setIsConvertingPlaylist(false);
@@ -249,14 +229,15 @@ export default function Home() {
       };
 
       eventSource.onerror = (e) => {
+        Events.removeAllListeners();
         return eventSource.close();
       };
       return () => {
-        console.log("Running SSE effect cleanup fn");
+        Events.removeAllListeners();
         eventSource.close();
       };
     }
-  }, [isPlaylist, playlistUniqueId]);
+  }, [isPlaylist, playlistUniqueId, playlistResultItems, missingTracks]);
 
   // playlist conversion mutation
   const { mutateAsync: playlistMutateAsync } = useMutation({
@@ -265,49 +246,26 @@ export default function Home() {
     mutationKey: ["/v1/playlist/convert"],
     onError: () => {
       // todo: more robust error handling (show different error messages for concerning errors)
-      toast({
-        title: "🙈 Uh-oh! That was embarrassing",
-        position: "top-right",
-        description: (
-          <Text
-            content={"Something went wrong, please try again."}
-            className={"text-black"}
-          />
-        ),
-        variant: "warning",
-      });
+      UnknownErrorToast();
     },
 
     onSuccess: (data) => {
       setPlaylistUniqueId(data?.task_id);
-      toast({
-        title: "Your playlist conversion has started",
-        position: "top-right",
-        description: (
-          <Text
-            content={
-              "We've started processing your playlist, you'll start seeing the results shortly"
-            }
-            className={"text-black"}
-          />
-        ),
-        variant: "success",
-        duration: 4000,
-      });
+
+      // reset track result rendering condition states.
+      setTrackResults(undefined);
+      PlaylistConversionStartedToast();
+      // empty previous playlist track results data
+      setPlaylistResultItems([]);
+      setResultCount(0);
     },
   });
 
   const handleGoButtonClick = async () => {
-    // todo:implement server sent events (playlist conversions)
-
-    console.log("Go button clicked... info is", link);
     if (link && isPlaylist) {
       setIsLoading(true);
-      console.log("Handling playlist....");
-      // trigger mutation
       await playlistMutateAsync({ link, platform: targetPlatform ?? "all" });
       return;
-      // todo: make request to start playlist conversion here, get the entity id back and set in state, then listen for the variable change in useeffect for sse flow
     }
 
     setIsLoading(true);
@@ -400,7 +358,6 @@ export default function Home() {
               >
                 Go
               </motion.span>
-
               <AnimatePresence>
                 {isLoading && (
                   <motion.div
@@ -460,14 +417,19 @@ export default function Home() {
             cover={playlistMeta?.cover ?? ""}
             link={playlistMeta?.link ?? ""}
             owner={playlistMeta?.owner ?? ""}
+            nb_tracks={playlistMeta?.nb_tracks ?? 0}
           >
             {!isLoading &&
               isPlaylist &&
               playlistUniqueId &&
               !isConvertingPlaylist && (
-                <span
-                  className={"text-xs ml-2"}
-                >{`Showing 1 of ${playlistMeta?.nb_tracks} tracks`}</span>
+                <div className={"justify-between flex flex-row items-center"}>
+                  <span
+                    className={"text-xs ml-2"}
+                  >{`Showing ${resultCount} of ${playlistMeta?.nb_tracks} ${playlistMeta?.nb_tracks > 1 ? "tracks" : "track"}`}</span>
+                  {missingTracks.length >= 1 &&
+                    missingTracks[0]?.title !== "" && <MissingTracksDialog />}
+                </div>
               )}
 
             {!isLoading &&
@@ -476,7 +438,7 @@ export default function Home() {
               isConvertingPlaylist && (
                 <div className={"flex flex-row justify-between"}>
                   <span className={"text-xs ml-2"}>
-                    Converted 1 of 10 tracks
+                    {`Track ${resultCount} of ${playlistMeta?.nb_tracks} converted`}
                   </span>
                   <AnimatePresence>
                     <motion.div
@@ -496,22 +458,14 @@ export default function Home() {
                   </AnimatePresence>
                 </div>
               )}
-            <PlaylistCardItem
-              data={[
-                {
-                  link: "https://example.com",
-                  platform: "deezer",
-                  artist: "Blanka Mazimela",
-                  title: "Ten 2 Killi",
-                },
-                {
-                  link: "https://example.com",
-                  platform: "applemusic",
-                  artist: "Blanka Mazimela",
-                  title: "Ten 2 Killi",
-                },
-              ]}
-            />
+
+            <ScrollableResults isConverting={isConvertingPlaylist}>
+              {playlistResultItems
+                ?.filter((item) => item?.length >= 1 && item[0].title !== "")
+                ?.map((item) => {
+                  return <PlaylistCardItem data={item} key={Math.random()} />;
+                })}
+            </ScrollableResults>
           </PlaylistCard>
         )}
 

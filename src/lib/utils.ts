@@ -209,3 +209,11 @@ export const extractPlatform = (url: string) => {
     PLATFORM_HOSTNAMES_KV[host as keyof typeof PLATFORM_HOSTNAMES_KV] || null
   );
 };
+
+export function pick<T>(array: T[], maxLength: number): T[] {
+  // ensure maxLength is a positive integer
+  const limit = Math.max(0, Math.floor(maxLength));
+
+  // return a new array with length limited to max length
+  return array.slice(0, limit);
+}

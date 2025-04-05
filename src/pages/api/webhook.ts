@@ -51,8 +51,19 @@ export default async function handler(
             // });
             break;
 
+          case "playlist_conversion_track":
+            console.log("emitting event track event");
+            console.log(JSON.stringify(eventType, null, 2));
+            Events.emit("playlist_conversion_track", eventType);
+            break;
+
           case "playlist_conversion_done":
+            console.log("emitting event done");
             Events.emit("playlist_conversion_done", eventType);
+            break;
+
+          case "playlist_conversion_missing_track":
+            Events.emit("playlist_conversion_missing_track", eventType);
             break;
           default:
             console.log("Unknown event type received.");
