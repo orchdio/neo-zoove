@@ -19,6 +19,7 @@ interface Props {
   artist: string;
   link: string;
   title: string;
+  id: string;
 }
 
 const TrackPlatformItem = (props: Props) => {

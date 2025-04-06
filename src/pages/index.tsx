@@ -12,12 +12,19 @@ import type {
   TrackConversionPayload,
   TrackMeta,
 } from "@/lib/blueprint";
+import {
+  PLAYLIST_CONVERSION_DONE_EVENT,
+  PLAYLIST_CONVERSION_MISSING_TRACK_EVENT,
+  PLAYLIST_CONVERSION_TRACK_EVENT,
+  PLAYLIST_METADATA_EVENT,
+} from "@/lib/constants";
 import Events from "@/lib/events";
 import orchdio from "@/lib/orchdio";
 import {
   buildTrackResultMetadata,
   convertPlatformToResult,
   extractPlatform,
+  getPlatformPrettyNameByKey,
 } from "@/lib/utils";
 import HeadIcons from "@/views/HeadIcons";
 import { MissingTracksDialog } from "@/views/MissingTracksDialog";
@@ -28,8 +35,10 @@ import ScrollableResults from "@/views/ScrollableResults";
 import TrackCard from "@/views/TrackCard";
 import TrackPlatformItem from "@/views/TrackPlatformItem";
 import {
+  InvalidTargetPlatformSelectionErrorToast,
   PlaylistConversionStartedToast,
   UnknownErrorToast,
+  UnsupportedPlatformErrorToast,
 } from "@/views/actionToasts";
 import { useMutation } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
@@ -147,99 +156,93 @@ export default function Home() {
     },
   });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
-    if (isPlaylist && playlistUniqueId) {
-      const eventSource = new EventSource("/api/sse/playlist");
+    const eventSource = new EventSource("/api/sse/playlist");
 
-      eventSource.onopen = (e) => {};
-      eventSource.onmessage = (event) => {
-        try {
-          const payload = JSON.parse(event.data);
+    eventSource.onopen = (e) => {};
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
 
-          if (payload?.event_type === "playlist_conversion_metadata") {
-            const playlistMetaInfo = payload?.message?.data as PlaylistMetaInfo;
-            setPlaylistMeta({
-              platform: playlistMetaInfo?.platform,
-              artist: "",
-              cover: playlistMetaInfo?.meta?.cover,
-              description: playlistMetaInfo?.meta?.description,
-              link: playlistMetaInfo?.meta?.url,
-              length: playlistMetaInfo?.meta?.length,
-              title: playlistMetaInfo?.meta?.title,
-              owner: playlistMetaInfo?.meta?.owner,
-              id: playlistMetaInfo?.unique_id,
-              nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
-            });
+        if (payload?.event_type === PLAYLIST_METADATA_EVENT) {
+          const playlistMetaInfo = payload?.message?.data as PlaylistMetaInfo;
+          const playlistMeta = {
+            platform: playlistMetaInfo?.platform,
+            artist: "",
+            cover: playlistMetaInfo?.meta?.cover,
+            description: playlistMetaInfo?.meta?.description,
+            link: playlistMetaInfo?.meta?.url,
+            length: playlistMetaInfo?.meta?.length,
+            title: playlistMetaInfo?.meta?.title,
+            owner: playlistMetaInfo?.meta?.owner,
+            id: playlistMetaInfo?.unique_id,
+            nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
+          };
 
-            setIsConvertingPlaylist(true);
-            setIsLoading(false);
-            setGoButtonIsDisabled(false);
-          }
+          setPlaylistMeta(playlistMeta);
 
-          if (payload?.event_type === "playlist_conversion_track") {
-            const itemData: PlaylistTrackConversionData =
-              payload?.message?.data;
-            const trackItems = itemData.tracks.map((trackInfo) => {
-              const item: PlaylistResultItem = {
-                link: trackInfo.track.url,
-                explicit: trackInfo.track.explicit,
-                artist: trackInfo.track.artists.join(", "),
-                platform: trackInfo.platform,
-                title: trackInfo.track.title,
-                preview: trackInfo.track.preview,
-              };
-
-              return item;
-            });
-
-            setPlaylistResultItems((prevItems) => [...prevItems, trackItems]);
-            setResultCount((prevState) => prevState + 1);
-            return;
-          }
-
-          if (payload?.event_type === "playlist_conversion_missing_track") {
-            console.log(JSON.stringify(payload?.message, null, 2));
-
-            const metaPayload = payload?.message
-              ?.data as PlaylistMissingTrackEventPayload;
-
-            console.log("Missing track payload is", metaPayload);
-            setMissingTracks((prevState) => [
-              ...prevState,
-              {
-                title: metaPayload?.meta?.item?.title,
-                platform: metaPayload?.meta?.platform,
-                url: metaPayload?.meta?.url,
-              },
-            ]);
-            return;
-          }
-
-          if (payload?.event_type === "playlist_conversion_done") {
-            setIsConvertingPlaylist(false);
-            return;
-          }
-
-          return Events.removeAllListeners();
-        } catch (e) {
-          console.error(e);
-          setIsConvertingPlaylist(false);
+          setSourcePlatform(playlistMetaInfo?.platform);
+          setIsConvertingPlaylist(true);
+          setIsLoading(false);
+          setGoButtonIsDisabled(false);
+          return;
         }
-      };
 
-      eventSource.onerror = (e) => {
-        Events.removeAllListeners();
-        return eventSource.close();
-      };
-      return () => {
-        Events.removeAllListeners();
-        eventSource.close();
-      };
-    }
-  }, [isPlaylist, playlistUniqueId, playlistResultItems, missingTracks]);
+        if (payload?.event_type === PLAYLIST_CONVERSION_TRACK_EVENT) {
+          const itemData: PlaylistTrackConversionData = payload?.message?.data;
+          const trackItems = itemData.tracks.map((trackInfo) => {
+            const item: PlaylistResultItem = {
+              link: trackInfo.track.url,
+              explicit: trackInfo.track.explicit,
+              artist: trackInfo.track.artists.join(", "),
+              platform: trackInfo.platform,
+              title: trackInfo.track.title,
+              preview: trackInfo.track.preview,
+            };
 
-  // playlist conversion mutation
+            return item;
+          });
+
+          setPlaylistResultItems((prevItems) => [...prevItems, trackItems]);
+          setResultCount((prevState) => prevState + 1);
+          return;
+        }
+
+        if (payload?.event_type === PLAYLIST_CONVERSION_MISSING_TRACK_EVENT) {
+          const metaPayload = payload?.message
+            ?.data as PlaylistMissingTrackEventPayload;
+
+          const missingItemMeta = {
+            title: metaPayload?.meta?.item?.title,
+            platform: metaPayload?.meta?.platform,
+            url: metaPayload?.meta?.item?.url,
+          };
+          setMissingTracks((prevState) => [...prevState, missingItemMeta]);
+          return;
+        }
+
+        if (payload?.event_type === PLAYLIST_CONVERSION_DONE_EVENT) {
+          setIsConvertingPlaylist(false);
+          return;
+        }
+
+        return Events.removeAllListeners();
+      } catch (e) {
+        console.error(e);
+        setIsConvertingPlaylist(false);
+      }
+    };
+
+    eventSource.onerror = (e) => {
+      Events.removeAllListeners();
+      return eventSource.close();
+    };
+    return () => {
+      Events.removeAllListeners();
+      eventSource.close();
+    };
+  }, []);
+
   const { mutateAsync: playlistMutateAsync } = useMutation({
     mutationFn: (data: { link: string; platform: string }) =>
       orchdio().convertPlaylist(data.link, data.platform),
@@ -258,6 +261,7 @@ export default function Home() {
       // empty previous playlist track results data
       setPlaylistResultItems([]);
       setResultCount(0);
+      setMissingTracks([]);
     },
   });
 
@@ -328,7 +332,17 @@ export default function Home() {
                 <PlatformSelectionSelect
                   className={"w-full"}
                   onChange={(value) => {
-                    console.log("Platform selection value", value);
+                    setGoButtonIsDisabled(true);
+                    if (value === "applemusic") {
+                      UnsupportedPlatformErrorToast();
+                      return;
+                    }
+                    if (link.includes(value)) {
+                      InvalidTargetPlatformSelectionErrorToast(
+                        getPlatformPrettyNameByKey(value),
+                      );
+                      return;
+                    }
                     setTargetPlatform(value);
                     setGoButtonIsDisabled(false);
                   }}
@@ -382,21 +396,23 @@ export default function Home() {
 
         {!isLoading && trackResults && (
           <TrackCard
-            id={"track-card"}
-            artist={trackMeta?.artist ?? ""}
-            title={trackMeta?.title ?? ""}
-            link={trackMeta?.link ?? ""}
-            cover={trackMeta?.cover ?? ""}
-            description={"todo"}
-            preview={trackMeta?.preview ?? ""}
-            length={trackMeta?.length ?? ""}
+            data={{
+              id: trackMeta?.id!,
+              preview: trackMeta?.preview ?? "",
+              artist: trackMeta?.artist!,
+              link: trackMeta?.link!,
+              cover: trackMeta?.cover!,
+              length: trackMeta?.length!,
+              title: trackMeta?.title!,
+            }}
           >
             {trackResults &&
               convertPlatformToResult(trackResults?.platforms)?.map(
                 (item, index) => {
                   return (
                     <TrackPlatformItem
-                      key={`${index * 2}.platform.result`}
+                      id={item.id}
+                      key={`$${item.id}-playlist-result-item`}
                       platform={item?.platform}
                       artist={item.artist}
                       link={item.link}
@@ -410,15 +426,7 @@ export default function Home() {
 
         {/**Playlist card here.*/}
         {!isLoading && playlistUniqueId && playlistMeta && (
-          <PlaylistCard
-            title={playlistMeta?.title ?? ""}
-            description={playlistMeta?.description ?? ""}
-            length={playlistMeta?.length ?? ""}
-            cover={playlistMeta?.cover ?? ""}
-            link={playlistMeta?.link ?? ""}
-            owner={playlistMeta?.owner ?? ""}
-            nb_tracks={playlistMeta?.nb_tracks ?? 0}
-          >
+          <PlaylistCard data={playlistMeta}>
             {!isLoading &&
               isPlaylist &&
               playlistUniqueId &&
@@ -427,8 +435,15 @@ export default function Home() {
                   <span
                     className={"text-xs ml-2"}
                   >{`Showing ${resultCount} of ${playlistMeta?.nb_tracks} ${playlistMeta?.nb_tracks > 1 ? "tracks" : "track"}`}</span>
-                  {missingTracks.length >= 1 &&
-                    missingTracks[0]?.title !== "" && <MissingTracksDialog />}
+                  {missingTracks.filter((item) => item.title !== "").length >=
+                    1 &&
+                    missingTracks[0]?.title !== "" && (
+                      <MissingTracksDialog
+                        items={missingTracks}
+                        source_platform={sourcePlatform!}
+                        target_platform={targetPlatform!}
+                      />
+                    )}
                 </div>
               )}
 

@@ -85,6 +85,7 @@ export const convertPlatformToResult = (platforms: Platforms) => {
         length: track.duration,
         cover: track.cover,
         preview: track.preview,
+        id: track.id,
       });
     }
   });
@@ -166,6 +167,7 @@ export function buildTrackResultMetadata(
     title: originalTrack?.title ?? "",
     length: originalTrack?.duration ?? "",
     preview: originalTrack?.preview ?? "",
+    id: originalTrack?.id ?? "",
   };
 
   const remainingPlatformsObjects = convertPlatformsToObject(remainingTracks);

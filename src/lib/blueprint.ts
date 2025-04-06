@@ -33,6 +33,7 @@ export interface TrackMeta {
   cover: string;
   length: string;
   preview?: string;
+  id: string;
 }
 
 export interface PlaylistMeta {
@@ -106,6 +107,5 @@ export interface PlaylistMissingTrackEventPayload {
     item: Track;
     missing_platform: string;
     platform: string;
-    url: string;
   };
 }

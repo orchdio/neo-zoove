@@ -20,7 +20,7 @@ export const MaxResultsToast = () => {
 
 export const PlaylistConversionStartedToast = () => {
   return toast({
-    title: "Your playlist conversion has started",
+    title: "🎉 Your playlist conversion has started",
     position: "top-right",
     description: (
       <Text
@@ -42,6 +42,35 @@ export const UnknownErrorToast = () => {
     description: (
       <Text
         content={"Something went wrong, please try again."}
+        className={"text-black"}
+      />
+    ),
+    variant: "warning",
+  });
+};
+
+export const UnsupportedPlatformErrorToast = () => {
+  return toast({
+    title: "💔 We're sorry, you cannot do that yet",
+    position: "top-right",
+    description: (
+      <Text
+        content={`We're improving our Apple Music support and it'll be available soon, please bear with us and check back`}
+        className={"text-black"}
+      />
+    ),
+    variant: "warning",
+    duration: 10000,
+  });
+};
+
+export const InvalidTargetPlatformSelectionErrorToast = (value: string) => {
+  return toast({
+    title: "🚨 Uh-oh! You cannot do that.",
+    position: "top-right",
+    description: (
+      <Text
+        content={`You are already trying to convert a ${value} playlist. Please choose another option apart from ${value}.`}
         className={"text-black"}
       />
     ),

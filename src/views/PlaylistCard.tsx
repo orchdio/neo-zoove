@@ -8,19 +8,22 @@ import Image from "next/image";
 import type React from "react";
 
 interface Props {
-  title: string;
-  description: string;
-  owner?: string;
-  length: string | number;
-  cover: string;
-  id?: string;
-  link: string;
-  platform?: string;
-  nb_tracks: number;
+  data: {
+    title: string;
+    description: string;
+    owner?: string;
+    length: string | number;
+    cover: string;
+    id?: string;
+    link: string;
+    platform?: string;
+    nb_tracks: number;
+  };
   children?: React.ReactNode;
 }
 const TrackCard = (props: Props) => {
   const [link, copyToClipboard] = useCopyToClipboard();
+
   return (
     <div className="w-full">
       <div className="w-full space-y-2">
@@ -39,7 +42,7 @@ const TrackCard = (props: Props) => {
             <div className="flex flex-row items-center space-x-4">
               <div className="flex-shrink-0 h-[150px] w-[150px] relative">
                 <Image
-                  src={props?.cover}
+                  src={props?.data?.cover}
                   alt="Track cover"
                   fill
                   className="object-cover"
@@ -48,41 +51,57 @@ const TrackCard = (props: Props) => {
 
               <div className="flex flex-col space-y-1 min-w-0 flex-1">
                 <h2 className="font-bold text-xl line-clamp-2 text-white">
-                  {props?.title}
+                  {props?.data?.title}
                 </h2>
                 <span className={"font-semibold line-clamp-2 text-xs"}>
-                  {props.description}
+                  {props.data.description}
                 </span>
-                {props?.owner && (
+                {props?.data?.owner && (
                   <span
                     className={"text-xs"}
-                  >{`owned by ${props?.owner}`}</span>
+                  >{`owned by ${props?.data?.owner}`}</span>
                 )}
 
-                {!props?.owner && (
+                {!props?.data?.owner && (
                   <span className={"italic text-xs text-zoove-gray-300"}>
                     {"unknown owner"}
                   </span>
                 )}
 
                 <Text
-                  content={`${props?.nb_tracks && props?.nb_tracks === 1 ? `${props?.nb_tracks} track` : `${props?.nb_tracks} tracks`} ${props?.length}`}
+                  content={
+                    <span>
+                      <span>
+                        {props?.data?.nb_tracks && props?.data?.nb_tracks === 1
+                          ? `${props?.data?.nb_tracks} track`
+                          : `${props?.data?.nb_tracks} tracks`}
+                      </span>
+                      <span>
+                        {props?.data?.length ? `, ${props?.data?.length}` : ""}
+                      </span>
+                    </span>
+                  }
                   className="text-xs dark:text-gray-200 text-gray-300"
                 />
                 <div className={"flex flex-row justify-between mt-2"}>
                   <div className={"flex flex-row items-center space-x-2"}>
-                    <PlusCircleIcon width={16} height={16} color={"white"} />
+                    <PlusCircleIcon
+                      width={16}
+                      height={16}
+                      color={"white"}
+                      opacity={0.5}
+                    />
                     <CopyIcon
                       width={16}
                       height={16}
                       onClick={async () => {
-                        await copyToClipboard(props?.link);
+                        await copyToClipboard(props?.data?.link);
                         toast({
                           title: "Playlist link copied",
                           description: (
                             <Text
                               className={"text-black"}
-                              content={`📋 Your ${capitalizeFirstLetter(props?.platform ?? "")} playlist link has been copied to clipboard`}
+                              content={`📋 ${capitalizeFirstLetter(props?.data?.platform ?? "")} playlist link has been copied to clipboard`}
                             />
                           ),
                           position: "top-right",
@@ -92,7 +111,12 @@ const TrackCard = (props: Props) => {
                       color={"white"}
                     />
                   </div>
-                  <ShareIcon width={16} height={16} color={"white"} />
+                  <ShareIcon
+                    width={16}
+                    height={16}
+                    color={"white"}
+                    onClick={() => window.open(props?.data?.link, "_blank")}
+                  />
                 </div>
               </div>
             </div>

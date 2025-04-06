@@ -11,39 +11,72 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { getPlatformPrettyNameByKey } from "@/lib/utils";
-import type React from "react";
+import { Share } from "lucide-react";
+import { useTheme } from "next-themes";
+import Image from "next/image";
 
-export const MissingTracksDialog: React.FC = ({
-  children,
-  source_platform,
-  target_platform,
-}: {
-  children: React.ReactNode;
+interface Props {
+  items: Array<{ url: string; title: string; platform: string }>;
   source_platform: string;
   target_platform: string;
-}) => {
+}
+
+export const MissingTracksDialog = (props: Props) => {
+  const { theme } = useTheme();
+  const sourcePlatformName = getPlatformPrettyNameByKey(props?.source_platform);
+  const targetPlatformName = getPlatformPrettyNameByKey(props?.target_platform);
+
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline">Share</Button>
+        <Button variant="link" className={"text-xs underline cursor-pointer"}>
+          show missing tracks
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Missing tracks</DialogTitle>
           <DialogDescription>
             <Text
-              content={`Some tracks are missing in your conversion from ${getPlatformPrettyNameByKey(source_platform)} to ${getPlatformPrettyNameByKey(target_platform)}. These results could not be fetched on ${getPlatformPrettyNameByKey(target_platform)}.`}
+              content={`Some tracks are missing in your conversion. These results could not be fetched on ${targetPlatformName}. The links below link to the tracks on ${sourcePlatformName}.`}
             />
           </DialogDescription>
         </DialogHeader>
 
         <div className="max-h-80 overflow-y-auto pr-2">
-          <div className="space-y-4">{children}</div>
+          <div className="space-y-4">
+            {props?.items?.map((item) => {
+              console.log("Item link is", item.url);
+              return (
+                <div
+                  className={"flex flex-row justify-between"}
+                  key={Math.random()}
+                >
+                  <div className={"flex flex-row space-x-2"}>
+                    <Image
+                      src={`/${props?.source_platform}/icons/${theme}.svg`}
+                      alt={"Target platform icon"}
+                      height={18}
+                      width={18}
+                    />
+                    <span>{item?.title}</span>
+                  </div>
+                  <Share
+                    height={18}
+                    width={18}
+                    onClick={() => {
+                      window.open(item?.url, "_blank");
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <DialogFooter className="sm:justify-start">
           <DialogClose asChild>
-            <Button type="button" variant="secondary">
+            <Button type="button" variant="outline">
               Close
             </Button>
           </DialogClose>

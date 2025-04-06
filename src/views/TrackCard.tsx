@@ -7,15 +7,15 @@ import Image from "next/image";
 import type React from "react";
 
 interface Props {
-  title: string;
-  description: string;
-  artist: string;
-  length: string | number;
-  preview: string;
-  cover: string;
-  id?: string;
-  link: string;
-  platform?: string;
+  data: {
+    title: string;
+    artist: string;
+    length: string | number;
+    preview: string;
+    cover: string;
+    id: string;
+    link: string;
+  };
   children?: React.ReactNode;
 }
 const TrackCard = (props: Props) => {
@@ -40,7 +40,7 @@ const TrackCard = (props: Props) => {
             <div className="flex flex-row items-center space-x-4">
               <div className="flex-shrink-0 h-[150px] w-[150px] relative">
                 <Image
-                  src={props?.cover}
+                  src={props?.data?.cover}
                   alt="Track cover"
                   fill
                   className="object-cover"
@@ -49,25 +49,25 @@ const TrackCard = (props: Props) => {
 
               <div className="flex flex-col space-y-2 min-w-0 flex-1">
                 <h2 className="font-bold text-xl line-clamp-2 text-white">
-                  {props?.title}
+                  {props?.data?.title}
                 </h2>
                 <p className="text-sm text-gray-100 line-clamp-2">
-                  {props?.artist}
+                  {props?.data?.artist}
                 </p>
                 <div className="flex flex-row justify-between">
                   <Text
-                    content={props?.length?.toString()}
+                    content={props?.data?.length?.toString()}
                     className="text-sm dark:text-gray-200 text-gray-300"
                   />
                   <div
-                    className={`${!props?.preview ? "opacity-40" : "opacity-100"} cursor-pointer`}
+                    className={`${!props?.data?.preview ? "opacity-40" : "opacity-100"} cursor-pointer`}
                     onClick={() => {
-                      isPlaying && playingTrack === props?.preview
+                      isPlaying && playingTrack === props?.data?.preview
                         ? handlePause()
-                        : handlePlay(props?.preview);
+                        : handlePlay(props?.data?.preview);
                     }}
                   >
-                    {isPlaying && playingTrack === props?.preview ? (
+                    {isPlaying && playingTrack === props?.data?.preview ? (
                       <motion.div
                         initial={{ scale: 1 }}
                         animate={{

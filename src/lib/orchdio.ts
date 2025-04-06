@@ -50,7 +50,6 @@ class Orchdio {
     link: string,
     targetPlatform: string,
   ): Promise<PlaylistConversionData> {
-    console.log("Link and platforms are", link, targetPlatform);
     const response = await this.axiosInstance.post("/v1/playlist/convert", {
       url: link,
       target_platform: targetPlatform,

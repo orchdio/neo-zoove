@@ -1,3 +1,9 @@
+import {
+  PLAYLIST_CONVERSION_DONE_EVENT,
+  PLAYLIST_CONVERSION_MISSING_TRACK_EVENT,
+  PLAYLIST_CONVERSION_TRACK_EVENT,
+  PLAYLIST_METADATA_EVENT,
+} from "@/lib/constants";
 import Events from "@/lib/events";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -19,69 +25,59 @@ export default async function handler(
       })}\n\n`,
     );
 
-    // Events.removeAllListeners();
+    Events.removeAllListeners();
 
-    // echo event
-    Events.once("playlist_conversion_metadata", (event) => {
+    Events.on(PLAYLIST_METADATA_EVENT, (event) => {
+      console.log("Emitting conversion metadata");
       res.write(
         `data: ${JSON.stringify({
-          event_type: "playlist_conversion_metadata",
+          event_type: PLAYLIST_METADATA_EVENT,
           message: event,
         })}\n\n`,
       );
-
-      // Events.removeAllListeners("playlist_conversion_metadata");
     });
 
-    Events.on("playlist_conversion_done", (event) => {
-      console.log("Handling event done emission here");
+    Events.on(PLAYLIST_CONVERSION_DONE_EVENT, (event) => {
+      console.log("Emitting conversion done");
       res.write(
         `data: ${JSON.stringify({
-          event_type: "playlist_conversion_done",
+          event_type: PLAYLIST_CONVERSION_DONE_EVENT,
           message: event,
         })}\n\n`,
       );
-
-      // Events.removeAllListeners("playlist_conversion_done");
     });
 
-    Events.on("playlist_conversion_track", (event) => {
-      console.log("Playlist track event....");
+    Events.on(PLAYLIST_CONVERSION_TRACK_EVENT, (event) => {
+      console.log("Emitting conversion track");
       res.write(
         `data: ${JSON.stringify({
-          event_type: "playlist_conversion_track",
+          event_type: PLAYLIST_CONVERSION_TRACK_EVENT,
           message: event,
         })}\n\n`,
       );
-      // Events.removeAllListeners("playlist_conversion_track");
     });
 
-    Events.on("playlist_conversion_missing_track", (event) => {
-      console.log("Missing track event....");
+    Events.on(PLAYLIST_CONVERSION_MISSING_TRACK_EVENT, (event) => {
+      console.log("Emitting conversion missing");
       res.write(
         `data: ${JSON.stringify({
-          event_type: "playlist_conversion_missing_track",
+          event_type: PLAYLIST_CONVERSION_MISSING_TRACK_EVENT,
           message: event,
         })}\n\n`,
       );
-
-      // Events.removeAllListeners("playlist_conversion_missing_track");
     });
 
     res.on("close", () => {
-      console.log("close event handler");
-      // Events.removeAllListeners();
+      Events.removeAllListeners();
       res.end();
     });
 
     res.socket?.on("close", () => {
-      console.log("close event handler socket");
-      // Events.removeAllListeners();
-
+      Events.removeAllListeners();
       res.end();
     });
   } catch (e) {
-    console.log("SSE error", e);
     Events.removeAllListeners();
+    res.end();
   }
 }

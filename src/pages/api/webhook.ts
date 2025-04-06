@@ -1,4 +1,10 @@
 import type { WebhookEventBase } from "@/lib/blueprint";
+import {
+  PLAYLIST_CONVERSION_DONE_EVENT,
+  PLAYLIST_CONVERSION_MISSING_TRACK_EVENT,
+  PLAYLIST_CONVERSION_TRACK_EVENT,
+  PLAYLIST_METADATA_EVENT,
+} from "@/lib/constants";
 import Events from "@/lib/events";
 import { SvixWebhook } from "@/lib/svix";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -12,7 +18,6 @@ export default async function handler(
       return res.json("ok");
     case "POST":
       try {
-        console.log("POSTing webhook");
         const svix = new SvixWebhook(process.env.SVIX_API_KEY!);
         const verificationHeaders = {
           "svix-id": req.headers["svix-id"] as string,
@@ -21,57 +26,49 @@ export default async function handler(
         };
 
         const webhookSecret = await svix.endpoint.getSecret(
-          // fixme(remove): svix_app_id is stored in the orchdio backend
+          // fixme(improve experience): svix_app_id is stored in the orchdio backend. for apps integrating Orchdio, they'll need to grab this from their Orchdio dashboard
           process.env.SVIX_APP_ID!,
           // endpoint id is in the format: `endpoint_${endpointUUID}
           process.env.SVIX_ENDPOINT_ID!,
         );
 
+        // for added security, we're verifying our webhook event.
         const verified = svix.verifyWebhook(
           webhookSecret.key,
           Buffer.from(JSON.stringify(req.body)),
           verificationHeaders,
         );
 
-        // ep_2rE9Eki9ROE9SOZIkv6XoyGzDBK
-        const eventType = verified as {
+        const webhookEventPayload = verified as {
           data: WebhookEventBase;
         };
 
-        switch (eventType?.data?.event_type) {
-          case "playlist_conversion_metadata":
-            // console.log("Playlist conversion metadata event received xx");
+        switch (webhookEventPayload?.data?.event_type) {
+          case PLAYLIST_METADATA_EVENT:
             console.log(
-              `emitting event "conversion_metadata:${eventType?.data?.task_id}"`,
+              `emitting event "conversion_metadata:${webhookEventPayload?.data?.task_id}"`,
             );
-            Events.emit("playlist_conversion_metadata", eventType);
-
-            // Events.off("playlist_conversion_metadata", (ev) => {
-            //   console.log("Removing event listener here...");
-            // });
+            Events.emit(PLAYLIST_CONVERSION_TRACK_EVENT, webhookEventPayload);
             break;
 
-          case "playlist_conversion_track":
+          case PLAYLIST_CONVERSION_TRACK_EVENT:
             console.log("emitting event track event");
-            console.log(JSON.stringify(eventType, null, 2));
-            Events.emit("playlist_conversion_track", eventType);
+            Events.emit(PLAYLIST_CONVERSION_TRACK_EVENT, webhookEventPayload);
             break;
 
-          case "playlist_conversion_done":
+          case PLAYLIST_CONVERSION_DONE_EVENT:
             console.log("emitting event done");
-            Events.emit("playlist_conversion_done", eventType);
+            Events.emit(PLAYLIST_CONVERSION_DONE_EVENT, webhookEventPayload);
             break;
 
-          case "playlist_conversion_missing_track":
-            Events.emit("playlist_conversion_missing_track", eventType);
+          case PLAYLIST_CONVERSION_MISSING_TRACK_EVENT:
+            Events.emit(
+              PLAYLIST_CONVERSION_MISSING_TRACK_EVENT,
+              webhookEventPayload,
+            );
             break;
           default:
             console.log("Unknown event type received.");
-            console.log("Unknown event payload...");
-            console.log(eventType);
-            // conversionEvents.emit("unhandled", "naan");
-            // todo: move this into a const.
-            // conversionEvents.emit("unhandled");
             break;
         }
 
