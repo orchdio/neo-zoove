@@ -29,7 +29,8 @@ and you can [signup to try the APIs here](https://dev.orchdio.com).
 
 #### Demo
 A short demo of the important things that work right now.
-![Zoove Demo](https://github.com/orchdio/neo-zoove/blob/main/neo-zoove-demo.mp4)
+
+![Zoove Demo](demogif.gif)
 
 #### Development
 This repo integrates [Orchdio APIs](https://docs.orchdio.dev), so in order to develop or self-host, you'd need API keys. Head over to the 
