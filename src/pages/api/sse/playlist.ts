@@ -25,8 +25,12 @@ export default async function handler(
       })}\n\n`,
     );
 
+    // putting this here to help mitigate the chances of events memory leaks due to client re-rendering side-effects
+    // might not have much advantage, might remove as time goes on.
+    //
+    // the same goes for other places in this file and in the useeffect in the index page.
+    // fixme(help): audit the side-effect on events and events memory leaks.
     Events.removeAllListeners();
-
     Events.on(PLAYLIST_METADATA_EVENT, (event) => {
       console.log("Emitting conversion metadata");
       res.write(

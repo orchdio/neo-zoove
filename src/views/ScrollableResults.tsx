@@ -14,7 +14,6 @@ const ScrollableResults = ({
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
     const isNearBottom = scrollHeight - scrollTop - clientHeight < 50;
 
-    // Only change autoScroll state if it's different from current value
     if (autoScroll !== isNearBottom) {
       setAutoScroll(isNearBottom);
     }

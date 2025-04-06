@@ -190,7 +190,7 @@ export default function Home() {
 
         if (payload?.event_type === PLAYLIST_CONVERSION_TRACK_EVENT) {
           const itemData: PlaylistTrackConversionData = payload?.message?.data;
-          const trackItems = itemData.tracks.map((trackInfo) => {
+          const trackItems = itemData?.tracks?.map((trackInfo) => {
             const item: PlaylistResultItem = {
               link: trackInfo.track.url,
               explicit: trackInfo.track.explicit,

@@ -48,7 +48,7 @@ export default async function handler(
             console.log(
               `emitting event "conversion_metadata:${webhookEventPayload?.data?.task_id}"`,
             );
-            Events.emit(PLAYLIST_CONVERSION_TRACK_EVENT, webhookEventPayload);
+            Events.emit(PLAYLIST_METADATA_EVENT, webhookEventPayload);
             break;
 
           case PLAYLIST_CONVERSION_TRACK_EVENT:
