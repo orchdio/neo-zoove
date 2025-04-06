@@ -16,6 +16,8 @@ Zoove currently support the following platforms:
 - YouTube Music
 - Apple Music
 
+Many other platforms and improvements are currently in the works and are expected to land soon.
+
 ```markdown
 ⚠️ We are currently improving Apple Music integration, therefore it is currently unavailable. We will make it available again very soon.
 We are also working on playlist support for YouTube/YouTube Music
@@ -23,6 +25,11 @@ We are also working on playlist support for YouTube/YouTube Music
 
 This web-app is powered by [Orchdio](https://orchdio.com), an API platform that provides unified APIs for music streaming platforms. You can read the [docs here](https://docs.orchdio.dev)
 and you can [signup to try the APIs here](https://dev.orchdio.com).
+
+
+#### Demo
+A short demo of the important things that work right now.
+<Video src="neo-zoove-demo.mov">Demo</Video>
 
 
 #### Development
