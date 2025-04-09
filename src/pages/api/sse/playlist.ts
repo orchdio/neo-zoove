@@ -71,6 +71,18 @@ export default async function handler(
       );
     });
 
+    Events.once("webhook_verification_error", (event) => {
+      console.log("Webhook verification failed.");
+      res.write(
+        `data: ${JSON.stringify({
+          event_type: "webhook_verification_error",
+          message: {
+            data: "Could not verify webhook",
+          },
+        })}\n\n`,
+      );
+    });
+
     res.on("close", () => {
       Events.removeAllListeners();
       res.end();

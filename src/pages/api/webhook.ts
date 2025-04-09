@@ -77,6 +77,7 @@ export default async function handler(
         });
       } catch (e) {
         console.log("Error handling webhook event", e);
+        Events.emit("webhook_verification_error", e);
         return res.status(500).send("Unhandled error");
       }
   }

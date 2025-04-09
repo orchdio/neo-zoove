@@ -226,6 +226,13 @@ export default function Home() {
           return;
         }
 
+        if (payload?.event_type === "webhook_verification_error") {
+          UnknownErrorToast();
+          setIsLoading(false);
+          setGoButtonIsDisabled(false);
+          return;
+        }
+
         return Events.removeAllListeners();
       } catch (e) {
         console.error(e);
