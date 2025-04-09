@@ -1,7 +1,7 @@
 import { Svix, Webhook } from "svix";
 
 export class SvixWebhook extends Svix {
-  private readonly url: string;
+  // private readonly url: string;
   // constructor(token: string, options?: SvixOptions) {
   //   super(token, options);
   // }
