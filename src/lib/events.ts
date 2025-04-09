@@ -1,4 +1,5 @@
-import { EventEmitter } from "node:events";
+// biome-ignore lint/style/useNodejsImportProtocol: <explanation>
+import { EventEmitter } from "events";
 
 class EventBus {
   private static instance: EventBus | null = null;
