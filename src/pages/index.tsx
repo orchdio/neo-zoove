@@ -46,6 +46,7 @@ import { Loader } from "lucide-react";
 import Image from "next/image";
 import posthog from "posthog-js";
 import { type ReactElement, useEffect, useRef, useState } from "react";
+import { v7 as uuidv7 } from "uuid";
 import DancingDuckGif from "../../public/dancing-duck.gif";
 
 export default function Home() {
@@ -157,36 +158,45 @@ export default function Home() {
   });
 
   useEffect(() => {
-    const eventSource = new EventSource("/api/sse/playlist");
+    const storedId = localStorage.getItem("clientId");
+    const clientId = storedId ?? uuidv7();
+
+    if (!storedId) {
+      localStorage.setItem("clientId", clientId);
+    }
+
+    const eventSource = new EventSource(
+      `/api/sse/playlist?clientId=${clientId}`,
+    );
 
     eventSource.onopen = (e) => {};
     eventSource.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
 
-        if (payload?.event_type === PLAYLIST_METADATA_EVENT) {
-          const playlistMetaInfo = payload?.message?.data as PlaylistMetaInfo;
-          const playlistMeta = {
-            platform: playlistMetaInfo?.platform,
-            artist: "",
-            cover: playlistMetaInfo?.meta?.cover,
-            description: playlistMetaInfo?.meta?.description,
-            link: playlistMetaInfo?.meta?.url,
-            length: playlistMetaInfo?.meta?.length,
-            title: playlistMetaInfo?.meta?.title,
-            owner: playlistMetaInfo?.meta?.owner,
-            id: playlistMetaInfo?.unique_id,
-            nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
-          };
-
-          setPlaylistMeta(playlistMeta);
-
-          setSourcePlatform(playlistMetaInfo?.platform);
-          setIsConvertingPlaylist(true);
-          setIsLoading(false);
-          setGoButtonIsDisabled(false);
-          return;
-        }
+        // if (payload?.event_type === PLAYLIST_METADATA_EVENT) {
+        //   const playlistMetaInfo = payload?.message?.data as PlaylistMetaInfo;
+        //   const playlistMeta = {
+        //     platform: playlistMetaInfo?.platform,
+        //     artist: "",
+        //     cover: playlistMetaInfo?.meta?.cover,
+        //     description: playlistMetaInfo?.meta?.description,
+        //     link: playlistMetaInfo?.meta?.url,
+        //     length: playlistMetaInfo?.meta?.length,
+        //     title: playlistMetaInfo?.meta?.title,
+        //     owner: playlistMetaInfo?.meta?.owner,
+        //     id: playlistMetaInfo?.unique_id,
+        //     nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
+        //   };
+        //
+        //   setPlaylistMeta(playlistMeta);
+        //
+        //   setSourcePlatform(playlistMetaInfo?.platform);
+        //   setIsConvertingPlaylist(true);
+        //   setIsLoading(false);
+        //   setGoButtonIsDisabled(false);
+        //   return;
+        // }
 
         if (payload?.event_type === PLAYLIST_CONVERSION_TRACK_EVENT) {
           const itemData: PlaylistTrackConversionData = payload?.message?.data;
@@ -221,10 +231,10 @@ export default function Home() {
           return;
         }
 
-        if (payload?.event_type === PLAYLIST_CONVERSION_DONE_EVENT) {
-          setIsConvertingPlaylist(false);
-          return;
-        }
+        // if (payload?.event_type === PLAYLIST_CONVERSION_DONE_EVENT) {
+        //   setIsConvertingPlaylist(false);
+        //   return;
+        // }
 
         if (payload?.event_type === "webhook_verification_error") {
           UnknownErrorToast();
@@ -240,15 +250,72 @@ export default function Home() {
       }
     };
 
+    eventSource.addEventListener(
+      `client_${clientId}_${PLAYLIST_METADATA_EVENT}`,
+      (eventPayload) => {
+        const payload = JSON.parse(eventPayload.data);
+        console.log("Received abc payload...");
+        console.log("PlaylistUniqueID:", playlistUniqueId);
+
+        if (payload?.event_type === PLAYLIST_METADATA_EVENT) {
+          const playlistMetaInfo = payload?.message?.data as PlaylistMetaInfo;
+          const playlistMeta = {
+            platform: playlistMetaInfo?.platform,
+            artist: "",
+            cover: playlistMetaInfo?.meta?.cover,
+            description: playlistMetaInfo?.meta?.description,
+            link: playlistMetaInfo?.meta?.url,
+            length: playlistMetaInfo?.meta?.length,
+            title: playlistMetaInfo?.meta?.title,
+            owner: playlistMetaInfo?.meta?.owner,
+            id: playlistMetaInfo?.unique_id,
+            nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
+          };
+
+          setPlaylistMeta(playlistMeta);
+
+          setSourcePlatform(playlistMetaInfo?.platform);
+          setIsConvertingPlaylist(true);
+          setIsLoading(false);
+          setGoButtonIsDisabled(false);
+          return;
+        }
+      },
+    );
+
+    eventSource.addEventListener(
+      `client_${clientId}_${PLAYLIST_CONVERSION_DONE_EVENT}`,
+      (eventPayload) => {
+        const payload = JSON.parse(eventPayload.data);
+
+        console.log(`Playlist ${playlistUniqueId} is done now.`);
+
+        setIsConvertingPlaylist(false);
+        return;
+      },
+    );
+
+    // eventSource.addEventListener(
+    //   `${PLAYLIST_CONVERSION_DONE_EVENT}:${clientId}`,
+    //   (payload) => {
+    //     console.log(
+    //       `Event ${PLAYLIST_METADATA_EVENT}:${clientId} emitted with payload: ${JSON.stringify(payload)}`,
+    //     );
+    //   },
+    // );
+
     eventSource.onerror = (e) => {
       Events.removeAllListeners();
       return eventSource.close();
     };
     return () => {
+      eventSource.removeEventListener("message", (ev) => {
+        console.log("Removed eventsource message listener in cleanup..");
+      });
       Events.removeAllListeners();
       eventSource.close();
     };
-  }, []);
+  }, [playlistUniqueId]);
 
   const { mutateAsync: playlistMutateAsync } = useMutation({
     mutationFn: (data: { link: string; platform: string }) =>
@@ -261,6 +328,8 @@ export default function Home() {
 
     onSuccess: (data) => {
       setPlaylistUniqueId(data?.task_id);
+
+      console.log("Playlist unique id set is", data?.task_id);
 
       // reset track result rendering condition states.
       setTrackResults(undefined);
