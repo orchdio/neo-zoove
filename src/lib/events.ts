@@ -10,15 +10,6 @@ class EventBus {
   private static instance: EventBus | null = null;
   public emitter: EventEmitter;
 
-  // store pattern listeners with their handlers
-  private patternListeners: Map<
-    string,
-    {
-      pattern: RegExp | string;
-      handler: (...args: any[]) => void;
-    }
-  >;
-
   // map to track client subscriptions by taskId
   private clientSubscriptions: Map<
     string, // taskId
@@ -33,7 +24,6 @@ class EventBus {
 
   private constructor() {
     this.emitter = new EventEmitter();
-    this.patternListeners = new Map();
     this.clientSubscriptions = new Map();
     this.activeClients = new Map();
     this.emitter.setMaxListeners(100);
