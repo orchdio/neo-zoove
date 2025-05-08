@@ -1,10 +1,17 @@
-// biome-ignore lint/style/useNodejsImportProtocol: <explanation>
+// biome-ignore lint/style/useNodejsImportProtocol: IDK, can't really deal with this, not worth it imo.
 import { EventEmitter } from "events";
+import type { WebhookEventBase } from "@/lib/blueprint";
 
+/**
+ * @description An EventBus that supports client-specific event subscriptions. It provides support for multiple clients and unique message dispatch to them
+ * based on task IDs to ensure events are only sent to relevant clients.
+ */
 class EventBus {
   private static instance: EventBus | null = null;
   public emitter: EventEmitter;
-  public patternListeners: Map<
+
+  // store pattern listeners with their handlers
+  private patternListeners: Map<
     string,
     {
       pattern: RegExp | string;
@@ -12,17 +19,24 @@ class EventBus {
     }
   >;
 
+  // map to track client subscriptions by taskId
+  private clientSubscriptions: Map<
+    string, // taskId
+    Set<string> // set of clientIds subscribed to this task
+  >;
+
+  // map to track client connections for cleanup
+  private activeClients: Map<
+    string, // clientId
+    Set<string> // set of taskIds this client is subscribed to
+  >;
+
   private constructor() {
     this.emitter = new EventEmitter();
     this.patternListeners = new Map();
-
-    this.emitter.on("*", (eventName: string, ...data: any[]) => {
-      this.patternListeners.forEach((listenerInfo, key) => {
-        if (this.matchesPattern(listenerInfo.pattern, eventName)) {
-          listenerInfo.handler(eventName, ...data);
-        }
-      });
-    });
+    this.clientSubscriptions = new Map();
+    this.activeClients = new Map();
+    this.emitter.setMaxListeners(100);
   }
 
   public static getInstance(): EventBus {
@@ -32,224 +46,218 @@ class EventBus {
     return EventBus.instance;
   }
 
+  /**
+   * register a client's subscription to a specific task
+   * @param clientId the unique identifier for the client
+   * @param taskId the task ID the client is interested in
+   */
+  subscribeClientToTask(clientId: string, taskId: string): void {
+    // task-to-clients mapping
+    if (!this.clientSubscriptions.has(taskId)) {
+      this.clientSubscriptions.set(taskId, new Set());
+    }
+    this.clientSubscriptions.get(taskId)?.add(clientId);
+
+    // client-to-tasks mapping for cleanup
+    if (!this.activeClients.has(clientId)) {
+      this.activeClients.set(clientId, new Set());
+    }
+    this.activeClients.get(clientId)?.add(taskId);
+
+    console.log("Subscribed client", clientId, "to task", taskId);
+  }
+
+  /**
+   * unsubscribe a client from a specific task
+   * @param clientId the unique identifier for the client
+   * @param taskId the task ID to unsubscribe from (optional - if not provided, unsubscribes from all tasks)
+   */
+  unsubscribeClient(clientId: string, taskId?: string): void {
+    if (taskId) {
+      // remove from a specific task subscription
+      const clients = this.clientSubscriptions.get(taskId);
+      if (clients) {
+        clients.delete(clientId);
+        if (clients.size === 0) {
+          this.clientSubscriptions.delete(taskId);
+        }
+      }
+
+      // update client's task list
+      const clientTasks = this.activeClients.get(clientId);
+      if (clientTasks) {
+        clientTasks.delete(taskId);
+        if (clientTasks.size === 0) {
+          this.activeClients.delete(clientId);
+        }
+      }
+    } else {
+      // unsubscribe from all tasks
+      const clientTasks = this.activeClients.get(clientId);
+      if (clientTasks) {
+        clientTasks.forEach((tId) => {
+          const clients = this.clientSubscriptions.get(tId);
+          if (clients) {
+            clients.delete(clientId);
+            if (clients.size === 0) {
+              this.clientSubscriptions.delete(tId);
+            }
+          }
+        });
+        this.activeClients.delete(clientId);
+      }
+    }
+    console.log("Unsubscribed client", clientId, "from task", taskId);
+  }
+
+  /**
+   * check if a client is subscribed to a specific task
+   */
+  isClientSubscribedToTask(clientId: string, taskId: string): boolean {
+    return !!this.clientSubscriptions.get(taskId)?.has(clientId);
+  }
+
+  /**
+   * get all clients subscribed to a specific task
+   */
+  getClientsForTask(taskId: string): string[] {
+    return Array.from(this.clientSubscriptions.get(taskId) || []);
+  }
+
+  /**
+   * get all tasks a client is subscribed to
+   */
+  getTasksForClient(clientId: string): string[] {
+    return Array.from(this.activeClients.get(clientId) || []);
+  }
+
+  /**
+   * register an event listener
+   */
   on(eventName: string | symbol, listener: (...args: any[]) => void) {
     this.emitter.on(eventName, listener);
     return this;
   }
 
+  /**
+   * remove an event listener
+   */
   off(eventName: string | symbol, listener: (...args: any[]) => void) {
-    console.log("Manually removing event listener for event..", eventName);
+    console.log("Removing event listener for event:", eventName);
     this.emitter.off(eventName, listener);
     return this;
   }
 
+  /**
+   * register a one-time event listener
+   */
   once(eventName: string | symbol, listener: (...args: any[]) => void) {
     this.emitter.once(eventName, listener);
     return this;
   }
 
+  /**
+   * emit an event to all connected listeners
+   */
   emit(eventName: string | symbol, ...args: any[]) {
-    // emit the original event
+    // Emit the original event
     this.emitter.emit(eventName, ...args);
 
-    if (eventName.toString()?.includes(":")) {
-      // emit the wildcard event. this is where we check if the custom/wildcard event (playlist_metadata:<playlist_webhook_conversion_uuid>) is valid and then
-      // trigger the listener for the event. if we dont emit this alongside the original event, we wont be able to actually
-      // listen for the original event. when handling wildcard, we'll optionally call the listener for the original event, which would be undefined if both arent emitted
-      // therefore our custom/wildcard event wont (properly) work
+    // Handle pattern-based events
+    if (typeof eventName === "string" && eventName.includes(":")) {
       this.emitter.emit("*", eventName, ...args);
     }
     return this;
   }
 
-  onPattern(pattern: RegExp | string, listener: (...args: any[]) => void) {
-    // create a unique key for this listener
-    const key =
-      typeof listener === "function"
-        ? listener.toString()
-        : Date.now().toString(); // perhaps another default would be ok? lgtm
+  /**
+   * emit an event only to clients subscribed to the specified taskId
+   * @param eventName The event name
+   * @param taskId The task ID to target
+   * @param args Additional event data
+   */
+  emitToTask(eventName: string, taskId: string, ...args: any[]) {
+    // create a client-specific event with the task ID
+    const taskEvent = `${eventName}:${taskId}`;
+    // emit the task-specific event
+    this.emitter.emit(taskEvent, taskId, ...args);
+    // also emit the wildcard event for pattern matching
+    this.emitter.emit("*", taskEvent, taskId, ...args);
+    return this;
+  }
 
-    // store the pattern and the handler in the map structure.
-    this.patternListeners.set(key, {
-      pattern,
-      handler: listener,
+  /**
+   * extract taskId from webhook payload
+   * this method assumes the payload has a taskId field, adjust as needed
+   */
+  extractTaskIdFromPayload(payload: WebhookEventBase): string | null {
+    // You can adjust this based on your actual payload structure
+    return payload?.task_id || null;
+  }
+
+  /**
+   * process a webhook event, routing it only to relevant clients
+   * @param eventName The base event name
+   * @param payload The webhook payload containing the taskId
+   */
+  processWebhook(eventName: string, payload: WebhookEventBase) {
+    const taskId = this.extractTaskIdFromPayload(payload);
+
+    if (!taskId) {
+      console.warn("Received webhook without valid taskId:", payload);
+      return this;
+    }
+
+    // emit the event specifically for this task (with the corresponding uniqueID)
+    return this.emitToTask(eventName, taskId, payload);
+  }
+
+  /**
+   * listen for events specific to a client and task
+   * @param eventName event name
+   * @param clientId clientId
+   * @param taskId taskId
+   * @param listener the listener for the client+task event. this is what actually writes to the SSE client.
+   */
+  onClientTask(
+    eventName: string,
+    clientId: string,
+    taskId: string,
+    listener: (...args: any[]) => void,
+  ) {
+    this.subscribeClientToTask(clientId, taskId);
+
+    // create a task pattern with event name and the id of the task that owns the event.
+    const taskPattern = `${eventName}:${taskId}`;
+
+    // register the listener for this specific task event
+    this.on(taskPattern, (...args) => {
+      // only call the listener if this client is still subscribed
+      if (this.isClientSubscribedToTask(clientId, taskId)) {
+        console.log(
+          `Client ${clientId} is still subscribed to task ${taskId}. Calling the handler..`,
+        );
+        listener(...args);
+      }
     });
 
     return this;
   }
 
-  offPattern(pattern: RegExp | string, listener: (...args: any[]) => void) {
-    // find and remove the pattern listener
-    const key = typeof listener === "function" ? listener.toString() : "";
-    if (key && this.patternListeners.has(key)) {
-      this.patternListeners.delete(key);
-    } else {
-      // key not found, try to find by pattern
-      this.patternListeners.forEach((info, k) => {
-        const patternStr = pattern.toString();
-        const infoPatternStr = info.pattern.toString();
-
-        if (patternStr === infoPatternStr) {
-          this.patternListeners.delete(k);
-        }
-      });
-    }
-
-    return this;
-  }
-
-  matchesPattern(pattern: RegExp | string, actual: string): boolean {
-    if (!actual) return false;
-
-    if (pattern instanceof RegExp) {
-      return pattern.test(actual);
-    }
-
-    return pattern === actual;
-  }
-
+  /**
+   * get the count of listeners for an event
+   */
   listenerCount(event: string): number {
     return this.emitter.listenerCount(event);
   }
 
+  /**
+   * remove all listeners for an event
+   */
   removeAllListeners(event?: string) {
     this.emitter.removeAllListeners(event);
-
-    // also clear pattern listeners if no specific event provided
-    if (!event) {
-      this.patternListeners.clear();
-    }
-
     return this;
   }
 }
-
-// export default EventBus.getInstance();
-
-// class EventBus {
-//   private static instance: EventBus | null = null;
-//   public emitter: EventEmitter; // Changed from emitters to emitter for better naming
-//   public patternListeners: Map<string, (...args: any[]) => void>;
-//
-//   private constructor() {
-//     this.emitter = new EventEmitter();
-//     this.patternListeners = new Map();
-//   }
-//
-//   public static getInstance(): EventBus {
-//     if (!EventBus.instance) {
-//       EventBus.instance = new EventBus();
-//     }
-//     return EventBus.instance;
-//   }
-//
-//   on(eventName: string | symbol, listener: (...args: any[]) => void) {
-//     console.log("-===============================≠=======≠≠≠≠=");
-//     console.log("DEBUG: listening to event... ", eventName);
-//     console.log("-===============================≠=======≠≠≠≠=");
-//     this.emitter.on(eventName, listener);
-//     return this;
-//   }
-//
-//   off(eventName: string | symbol, listener: (...args: any[]) => void) {
-//     console.log("Manually removing event listener for event..", eventName);
-//     this.emitter.off(eventName, listener);
-//     return this;
-//   }
-//
-//   once(eventName: string | symbol, listener: (...args: any[]) => void) {
-//     this.emitter.once(eventName, listener);
-//     return this;
-//   }
-//
-//   emit(eventName: string | symbol, ...args: any[]) {
-//     // if the eventname contains something like :, then its most likely a wildcard type event
-//     // and we want to handle some things around that.
-//
-//     if (eventName?.toString()?.includes(":")) {
-//       console.log("INFO: wildcard based event... Emitting wildcard event....");
-//       console.log(
-//         "-----========================================================================\n\n",
-//       );
-//       console.log("WILDCARD ARGS ARE....");
-//       console.log(...args);
-//       console.log(
-//         "-----========================================================================\n\n",
-//       );
-//       this.emitter.emit("*", ...args);
-//       return this;
-//     }
-//     this.emitter.emit(eventName, ...args);
-//     return this;
-//   }
-//
-//   // support for pattern based stuff.
-//
-//   onPattern(pattern: RegExp | string, listener: (...args: any[]) => void) {
-//     console.log("listeners are::: ", listener.toString());
-//     console.log("calling onPattern... ");
-//     const patternInfo = {
-//       pattern,
-//       listener,
-//       handler: (args: any) => {
-//         console.log("Handler running....");
-//         console.log(args);
-//
-//         const actualName = `${args?.data?.event_type}:${args?.data?.task_id}`;
-//         // console.log(
-//         //   "-----------________________----------________________---------",
-//         // );
-//         // console.log("PASSED PATTERN AND ACTUAL ARE::", pattern, actualName);
-//         // console.log(
-//         //   "-----------________________----------________________---------",
-//         // );
-//         const isMatch = this.matchesPattern(pattern, actualName);
-//         console.log("PATTERN MATCHES...", isMatch);
-//         if (isMatch) {
-//           console.log(
-//             "INFO:: seems to match pattern... running onPattern emitter method...",
-//           );
-//           // console.log(listener.toString());
-//           listener(actualName, args);
-//         }
-//       },
-//     };
-//     //
-//     // console.log("--------------------------------------------------------");
-//     // console.log(
-//     //   "custom onPattern triggered now, emitting special wildcard event....",
-//     // );
-//     // console.log("--------------------------------------------------------");
-//     this.emitter.on("*", patternInfo.handler);
-//     return this;
-//   }
-//
-//   offPattern(actualName: string, listener: (...args: any[]) => void) {
-//     console.log("WILDCARE OFFF....");
-//     // this.emitter.off("*", listener);
-//     return this;
-//   }
-//
-//   matchesPattern(pattern: RegExp | string, actual: string) {
-//     if (pattern instanceof RegExp) {
-//       console.log("pattern is a regex...");
-//       console.log(pattern, actual);
-//       console.log("matchesPattern.test(actual);");
-//       return pattern.test(actual);
-//     }
-//
-//     return pattern === actual;
-//   }
-//
-//   listenerCount(event: string): number {
-//     return this.emitter.listenerCount(event);
-//   }
-//
-//   removeAllListeners(event?: string) {
-//     console.log("Remove listeners...");
-//     this.emitter.removeAllListeners(event);
-//     return this;
-//   }
-// }
 
 export default EventBus.getInstance();

@@ -157,164 +157,141 @@ export default function Home() {
     },
   });
 
+  // todo: audit UX & handle event (payload parsing) errors.
+  // useEffect for playlist conversion/SSE actions & handlers.
+  // Not extracted to a hook because I dont perceive much benefit over converting to hook than leaving here as it is.
   useEffect(() => {
-    const storedId = localStorage.getItem("clientId");
-    const clientId = storedId ?? uuidv7();
+    if (playlistUniqueId) {
+      const storedId = localStorage.getItem("clientId");
+      const clientId = storedId ?? uuidv7();
 
-    if (!storedId) {
-      localStorage.setItem("clientId", clientId);
-    }
+      console.log("Task ID for conversion is ", playlistUniqueId);
+      console.log(
+        "Going to make a request with client and task id",
+        clientId,
+        playlistUniqueId,
+      );
 
-    const eventSource = new EventSource(
-      `/api/sse/playlist?clientId=${clientId}`,
-    );
+      const sseURL = `/api/sse/playlist?clientId=${clientId}&taskId=${playlistUniqueId}`;
+      const eventSource = new EventSource(sseURL);
 
-    eventSource.onopen = (e) => {};
-    eventSource.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
+      // not doing anything, a little bit helpful for dev/debugging...
+      eventSource.onmessage = (event) => {
+        console.log("Event received", event);
+      };
 
-        // if (payload?.event_type === PLAYLIST_METADATA_EVENT) {
-        //   const playlistMetaInfo = payload?.message?.data as PlaylistMetaInfo;
-        //   const playlistMeta = {
-        //     platform: playlistMetaInfo?.platform,
-        //     artist: "",
-        //     cover: playlistMetaInfo?.meta?.cover,
-        //     description: playlistMetaInfo?.meta?.description,
-        //     link: playlistMetaInfo?.meta?.url,
-        //     length: playlistMetaInfo?.meta?.length,
-        //     title: playlistMetaInfo?.meta?.title,
-        //     owner: playlistMetaInfo?.meta?.owner,
-        //     id: playlistMetaInfo?.unique_id,
-        //     nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
-        //   };
-        //
-        //   setPlaylistMeta(playlistMeta);
-        //
-        //   setSourcePlatform(playlistMetaInfo?.platform);
-        //   setIsConvertingPlaylist(true);
-        //   setIsLoading(false);
-        //   setGoButtonIsDisabled(false);
-        //   return;
-        // }
+      // playlist metadata event...
+      eventSource.addEventListener(
+        `${PLAYLIST_METADATA_EVENT}_${clientId}_${playlistUniqueId}`,
+        (eventPayload) => {
+          try {
+            const payload = JSON.parse(eventPayload.data);
 
-        if (payload?.event_type === PLAYLIST_CONVERSION_TRACK_EVENT) {
-          const itemData: PlaylistTrackConversionData = payload?.message?.data;
-          const trackItems = itemData?.tracks?.map((trackInfo) => {
-            const item: PlaylistResultItem = {
-              link: trackInfo.track.url,
-              explicit: trackInfo.track.explicit,
-              artist: trackInfo.track.artists.join(", "),
-              platform: trackInfo.platform,
-              title: trackInfo.track.title,
-              preview: trackInfo.track.preview,
+            const playlistMetaInfo = payload as PlaylistMetaInfo;
+            const playlistMeta = {
+              platform: playlistMetaInfo?.platform,
+              artist: "",
+              cover: playlistMetaInfo?.meta?.cover,
+              description: playlistMetaInfo?.meta?.description,
+              link: playlistMetaInfo?.meta?.url,
+              length: playlistMetaInfo?.meta?.length,
+              title: playlistMetaInfo?.meta?.title,
+              owner: playlistMetaInfo?.meta?.owner,
+              id: playlistMetaInfo?.unique_id,
+              nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
             };
 
-            return item;
-          });
+            setPlaylistMeta(playlistMeta);
 
-          setPlaylistResultItems((prevItems) => [...prevItems, trackItems]);
-          setResultCount((prevState) => prevState + 1);
+            setSourcePlatform(playlistMetaInfo?.platform);
+            setIsConvertingPlaylist(true);
+            setIsLoading(false);
+            setGoButtonIsDisabled(false);
+            return;
+          } catch (e) {
+            console.log("Error with eventsource message ", e);
+          }
+        },
+      );
+
+      // track conversion event
+      eventSource.addEventListener(
+        `${PLAYLIST_CONVERSION_TRACK_EVENT}_${clientId}_${playlistUniqueId}`,
+        (eventPayload) => {
+          try {
+            const itemData: PlaylistTrackConversionData = JSON.parse(
+              eventPayload.data,
+            );
+            const trackItems = itemData?.tracks?.map((trackInfo) => {
+              const item: PlaylistResultItem = {
+                link: trackInfo.track.url,
+                explicit: trackInfo.track.explicit,
+                artist: trackInfo.track.artists.join(", "),
+                platform: trackInfo.platform,
+                title: trackInfo.track.title,
+                preview: trackInfo.track.preview,
+              };
+
+              return item;
+            });
+
+            setPlaylistResultItems((prevItems) => [...prevItems, trackItems]);
+            setResultCount((prevState) => prevState + 1);
+            return;
+          } catch (e) {
+            console.log(
+              "Error with eventsource message in track conversion event",
+              e,
+            );
+          }
+        },
+      );
+
+      // missing tracks event
+      eventSource.addEventListener(
+        `${PLAYLIST_CONVERSION_MISSING_TRACK_EVENT}_${clientId}_${playlistUniqueId}`,
+        (eventPayload) => {
+          try {
+            const metaPayload: PlaylistMissingTrackEventPayload = JSON.parse(
+              eventPayload?.data,
+            );
+            const missingItemMeta = {
+              title: metaPayload?.meta?.item?.title,
+              platform: metaPayload?.meta?.platform,
+              url: metaPayload?.meta?.item?.url,
+            };
+            setMissingTracks((prevState) => [...prevState, missingItemMeta]);
+            return;
+          } catch (e) {
+            console.log(
+              "Error with eventsource message in track conversion missing track event",
+              e,
+            );
+          }
+        },
+      );
+
+      // (playlist) conversion done event...
+      eventSource.addEventListener(
+        `${PLAYLIST_CONVERSION_DONE_EVENT}_${clientId}_${playlistUniqueId}`,
+        (eventPayload) => {
+          console.log(`Playlist ${playlistUniqueId} is done now.`);
+          setIsConvertingPlaylist(false);
+          Events.unsubscribeClient(clientId, playlistUniqueId);
           return;
-        }
+        },
+      );
 
-        if (payload?.event_type === PLAYLIST_CONVERSION_MISSING_TRACK_EVENT) {
-          const metaPayload = payload?.message
-            ?.data as PlaylistMissingTrackEventPayload;
-
-          const missingItemMeta = {
-            title: metaPayload?.meta?.item?.title,
-            platform: metaPayload?.meta?.platform,
-            url: metaPayload?.meta?.item?.url,
-          };
-          setMissingTracks((prevState) => [...prevState, missingItemMeta]);
-          return;
-        }
-
-        // if (payload?.event_type === PLAYLIST_CONVERSION_DONE_EVENT) {
-        //   setIsConvertingPlaylist(false);
-        //   return;
-        // }
-
-        if (payload?.event_type === "webhook_verification_error") {
-          UnknownErrorToast();
-          setIsLoading(false);
-          setGoButtonIsDisabled(false);
-          return;
-        }
-
-        return Events.removeAllListeners();
-      } catch (e) {
-        console.error(e);
-        setIsConvertingPlaylist(false);
-      }
-    };
-
-    eventSource.addEventListener(
-      `client_${clientId}_${PLAYLIST_METADATA_EVENT}`,
-      (eventPayload) => {
-        const payload = JSON.parse(eventPayload.data);
-        console.log("Received abc payload...");
-        console.log("PlaylistUniqueID:", playlistUniqueId);
-
-        if (payload?.event_type === PLAYLIST_METADATA_EVENT) {
-          const playlistMetaInfo = payload?.message?.data as PlaylistMetaInfo;
-          const playlistMeta = {
-            platform: playlistMetaInfo?.platform,
-            artist: "",
-            cover: playlistMetaInfo?.meta?.cover,
-            description: playlistMetaInfo?.meta?.description,
-            link: playlistMetaInfo?.meta?.url,
-            length: playlistMetaInfo?.meta?.length,
-            title: playlistMetaInfo?.meta?.title,
-            owner: playlistMetaInfo?.meta?.owner,
-            id: playlistMetaInfo?.unique_id,
-            nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
-          };
-
-          setPlaylistMeta(playlistMeta);
-
-          setSourcePlatform(playlistMetaInfo?.platform);
-          setIsConvertingPlaylist(true);
-          setIsLoading(false);
-          setGoButtonIsDisabled(false);
-          return;
-        }
-      },
-    );
-
-    eventSource.addEventListener(
-      `client_${clientId}_${PLAYLIST_CONVERSION_DONE_EVENT}`,
-      (eventPayload) => {
-        const payload = JSON.parse(eventPayload.data);
-
-        console.log(`Playlist ${playlistUniqueId} is done now.`);
-
-        setIsConvertingPlaylist(false);
-        return;
-      },
-    );
-
-    // eventSource.addEventListener(
-    //   `${PLAYLIST_CONVERSION_DONE_EVENT}:${clientId}`,
-    //   (payload) => {
-    //     console.log(
-    //       `Event ${PLAYLIST_METADATA_EVENT}:${clientId} emitted with payload: ${JSON.stringify(payload)}`,
-    //     );
-    //   },
-    // );
-
-    eventSource.onerror = (e) => {
-      Events.removeAllListeners();
-      return eventSource.close();
-    };
-    return () => {
-      eventSource.removeEventListener("message", (ev) => {
-        console.log("Removed eventsource message listener in cleanup..");
+      eventSource.addEventListener("error", (e) => {
+        console.log("Error with eventsource", e);
       });
-      Events.removeAllListeners();
-      eventSource.close();
-    };
+
+      return () => {
+        console.log("Clearing event source connection");
+        eventSource.close();
+        console.log("Event source connection closed");
+      };
+    }
   }, [playlistUniqueId]);
 
   const { mutateAsync: playlistMutateAsync } = useMutation({
@@ -328,10 +305,7 @@ export default function Home() {
 
     onSuccess: (data) => {
       setPlaylistUniqueId(data?.task_id);
-
-      console.log("Playlist unique id set is", data?.task_id);
-
-      // reset track result rendering condition states.
+      // reset the track result rendering condition states.
       setTrackResults(undefined);
       PlaylistConversionStartedToast();
       // empty previous playlist track results data
@@ -342,13 +316,12 @@ export default function Home() {
   });
 
   const handleGoButtonClick = async () => {
+    setIsLoading(true);
     if (link && isPlaylist) {
-      setIsLoading(true);
       await playlistMutateAsync({ link, platform: targetPlatform ?? "all" });
       return;
     }
 
-    setIsLoading(true);
     setGoButtonIsDisabled(true);
     await mutateAsync(link);
   };

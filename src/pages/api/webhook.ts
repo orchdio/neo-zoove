@@ -1,10 +1,4 @@
 import type { WebhookEventBase } from "@/lib/blueprint";
-import {
-  PLAYLIST_CONVERSION_DONE_EVENT,
-  PLAYLIST_CONVERSION_MISSING_TRACK_EVENT,
-  PLAYLIST_CONVERSION_TRACK_EVENT,
-  PLAYLIST_METADATA_EVENT,
-} from "@/lib/constants";
 import Events from "@/lib/events";
 import { SvixWebhook } from "@/lib/svix";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -33,6 +27,7 @@ export default async function handler(
         );
 
         // for added security, we're verifying our webhook event.
+        // fixme(docs): update this info in docs and add necessary information for integrating
         const verified = svix.verifyWebhook(
           webhookSecret.key,
           Buffer.from(JSON.stringify(req.body)),
@@ -43,37 +38,12 @@ export default async function handler(
           data: WebhookEventBase;
         };
 
-        switch (webhookEventPayload?.data?.event_type) {
-          case PLAYLIST_METADATA_EVENT:
-            console.log(
-              `emitting event "conversion_metadata:${webhookEventPayload?.data?.task_id}"`,
-            );
-            Events.emit(
-              `${PLAYLIST_METADATA_EVENT}:${webhookEventPayload?.data?.task_id}`,
-              webhookEventPayload,
-            );
-            break;
-
-          case PLAYLIST_CONVERSION_TRACK_EVENT:
-            console.log("emitting event track event");
-            Events.emit(PLAYLIST_CONVERSION_TRACK_EVENT, webhookEventPayload);
-            break;
-
-          case PLAYLIST_CONVERSION_DONE_EVENT:
-            console.log("emitting event done");
-            Events.emit(PLAYLIST_CONVERSION_DONE_EVENT, webhookEventPayload);
-            break;
-
-          case PLAYLIST_CONVERSION_MISSING_TRACK_EVENT:
-            Events.emit(
-              PLAYLIST_CONVERSION_MISSING_TRACK_EVENT,
-              webhookEventPayload,
-            );
-            break;
-          default:
-            console.log("Unknown event type received.");
-            break;
-        }
+        // process the WH event by subscribing the client to the corresponding taskId (or unique playlistId)
+        // and then dispatch the handling result (and necessary payload emitting) to the client
+        Events.processWebhook(
+          webhookEventPayload?.data?.event_type,
+          webhookEventPayload?.data,
+        );
 
         return res.status(200).json({
           message: "ok",
