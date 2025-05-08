@@ -43,7 +43,7 @@ export const useLinkResolver = ({
 
         if (unsupportedEntity && enableToast) {
           toast({
-            title: `Your link is ${unsupportedEntity === "album link" ? "an" : "a"} ${unsupportedEntity}`,
+            title: `Your link is ${unsupportedEntity === "album" ? "an" : "a"} ${unsupportedEntity}`,
             position: "top-right",
             description: (
               <span className={"text-black"}>
