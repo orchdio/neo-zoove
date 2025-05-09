@@ -45,7 +45,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Loader } from "lucide-react";
 import Image from "next/image";
 import posthog from "posthog-js";
-import { type ReactElement, useEffect, useRef, useState } from "react";
+import { type ReactElement, useEffect, useState } from "react";
 import { v7 as uuidv7 } from "uuid";
 import DancingDuckGif from "../../public/dancing-duck.gif";
 
@@ -93,7 +93,7 @@ export default function Home() {
   const [isConvertingPlaylist, setIsConvertingPlaylist] =
     useState<boolean>(false);
 
-  const inputRef = useRef<HTMLInputElement>(null);
+  // const inputRef = useRef<HTMLInputElement>(null);
 
   const maintenanceMode =
     process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "maintenance";
@@ -115,7 +115,16 @@ export default function Home() {
         setIsPlaylist(true);
         return;
       }
-      setGoButtonIsDisabled(false);
+
+      // resolve resolvedLink into a URL (again). this is to allow us to verify if it's a valid URL.
+      // if it's not, we don't want to allow clicking the go button. this is done this way because
+      //  it's less cumbersome and "dirty" than using another option like regex. we simply rely on the robust
+      // URL parsing and resolving in the browser engine.
+      // This way, typing a bunch of text into the input box won't enable the user to trigger a conversion request
+      try {
+        new URL(resolvedLink);
+        setGoButtonIsDisabled(false);
+      } catch (e) {}
     },
   });
 
@@ -165,19 +174,13 @@ export default function Home() {
       const storedId = localStorage.getItem("clientId");
       const clientId = storedId ?? uuidv7();
 
-      console.log("Task ID for conversion is ", playlistUniqueId);
-      console.log(
-        "Going to make a request with client and task id",
-        clientId,
-        playlistUniqueId,
-      );
-
       const sseURL = `/api/sse/playlist?clientId=${clientId}&taskId=${playlistUniqueId}`;
       const eventSource = new EventSource(sseURL);
 
       // not doing anything, a little bit helpful for dev/debugging...
+      // console log intentionally commented out and left as it is.
       eventSource.onmessage = (event) => {
-        console.log("Event received", event);
+        // console.log("Event received", event);
       };
 
       // playlist metadata event...
@@ -275,7 +278,6 @@ export default function Home() {
       eventSource.addEventListener(
         `${PLAYLIST_CONVERSION_DONE_EVENT}_${clientId}_${playlistUniqueId}`,
         (eventPayload) => {
-          console.log(`Playlist ${playlistUniqueId} is done now.`);
           setIsConvertingPlaylist(false);
           Events.unsubscribeClient(clientId, playlistUniqueId);
           return;
@@ -372,12 +374,12 @@ export default function Home() {
                 await resolveLink(e.target.value);
               }}
               className={"w-full flex-auto h-14 rounded-sm px-2"}
-              ref={inputRef}
+              // ref={inputRef}
             />
 
             {/** target platforms dropdown. Shown only if the pasted link is a playlist*/}
             {isPlaylist && (
-              <div className={"mt-2 w-full md:w-fit"}>
+              <div className={"mt-2 w-full"}>
                 <PlatformSelectionSelect
                   className={"w-full"}
                   onChange={(value) => {

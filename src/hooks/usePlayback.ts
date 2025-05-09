@@ -75,7 +75,6 @@ export const usePlayback = () => {
       // pause current track
       audioRef.current.pause();
     }
-
     // create new audio context
     audioRef.current = new Audio(url);
     await audioRef.current.play();
@@ -85,7 +84,6 @@ export const usePlayback = () => {
   };
 
   const handlePause = () => {
-    2;
     if (!audioRef.current) return;
 
     setIsPlaying(false);
