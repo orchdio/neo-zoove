@@ -22,7 +22,7 @@ interface Props {
   children?: React.ReactNode;
 }
 const TrackCard = (props: Props) => {
-  const [link, copyToClipboard] = useCopyToClipboard();
+  const [_, copyToClipboard] = useCopyToClipboard();
 
   return (
     <div className="w-full">

@@ -45,7 +45,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Loader } from "lucide-react";
 import Image from "next/image";
 import posthog from "posthog-js";
-import { type ReactElement, useEffect, useRef, useState } from "react";
+import { type ReactElement, useEffect, useState } from "react";
+import { v7 as uuidv7 } from "uuid";
 import DancingDuckGif from "../../public/dancing-duck.gif";
 
 export default function Home() {
@@ -92,7 +93,7 @@ export default function Home() {
   const [isConvertingPlaylist, setIsConvertingPlaylist] =
     useState<boolean>(false);
 
-  const inputRef = useRef<HTMLInputElement>(null);
+  // const inputRef = useRef<HTMLInputElement>(null);
 
   const maintenanceMode =
     process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "maintenance";
@@ -114,7 +115,16 @@ export default function Home() {
         setIsPlaylist(true);
         return;
       }
-      setGoButtonIsDisabled(false);
+
+      // resolve resolvedLink into a URL (again). this is to allow us to verify if it's a valid URL.
+      // if it's not, we don't want to allow clicking the go button. this is done this way because
+      //  it's less cumbersome and "dirty" than using another option like regex. we simply rely on the robust
+      // URL parsing and resolving in the browser engine.
+      // This way, typing a bunch of text into the input box won't enable the user to trigger a conversion request
+      try {
+        new URL(resolvedLink);
+        setGoButtonIsDisabled(false);
+      } catch (e) {}
     },
   });
 
@@ -156,92 +166,135 @@ export default function Home() {
     },
   });
 
+  // todo: audit UX & handle event (payload parsing) errors.
+  // useEffect for playlist conversion/SSE actions & handlers.
+  // Not extracted to a hook because I dont perceive much benefit over converting to hook than leaving here as it is.
   useEffect(() => {
-    const eventSource = new EventSource("/api/sse/playlist");
+    if (playlistUniqueId) {
+      const storedId = localStorage.getItem("clientId");
+      const clientId = storedId ?? uuidv7();
 
-    eventSource.onopen = (e) => {};
-    eventSource.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
+      const sseURL = `/api/sse/playlist?clientId=${clientId}&taskId=${playlistUniqueId}`;
+      const eventSource = new EventSource(sseURL);
 
-        if (payload?.event_type === PLAYLIST_METADATA_EVENT) {
-          const playlistMetaInfo = payload?.message?.data as PlaylistMetaInfo;
-          const playlistMeta = {
-            platform: playlistMetaInfo?.platform,
-            artist: "",
-            cover: playlistMetaInfo?.meta?.cover,
-            description: playlistMetaInfo?.meta?.description,
-            link: playlistMetaInfo?.meta?.url,
-            length: playlistMetaInfo?.meta?.length,
-            title: playlistMetaInfo?.meta?.title,
-            owner: playlistMetaInfo?.meta?.owner,
-            id: playlistMetaInfo?.unique_id,
-            nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
-          };
+      // not doing anything, a little bit helpful for dev/debugging...
+      // console log intentionally commented out and left as it is.
+      eventSource.onmessage = (event) => {
+        // console.log("Event received", event);
+      };
 
-          setPlaylistMeta(playlistMeta);
+      // playlist metadata event...
+      eventSource.addEventListener(
+        `${PLAYLIST_METADATA_EVENT}_${clientId}_${playlistUniqueId}`,
+        (eventPayload) => {
+          try {
+            const payload = JSON.parse(eventPayload.data);
 
-          setSourcePlatform(playlistMetaInfo?.platform);
-          setIsConvertingPlaylist(true);
-          setIsLoading(false);
-          setGoButtonIsDisabled(false);
-          return;
-        }
-
-        if (payload?.event_type === PLAYLIST_CONVERSION_TRACK_EVENT) {
-          const itemData: PlaylistTrackConversionData = payload?.message?.data;
-          const trackItems = itemData?.tracks?.map((trackInfo) => {
-            const item: PlaylistResultItem = {
-              link: trackInfo.track.url,
-              explicit: trackInfo.track.explicit,
-              artist: trackInfo.track.artists.join(", "),
-              platform: trackInfo.platform,
-              title: trackInfo.track.title,
-              preview: trackInfo.track.preview,
+            const playlistMetaInfo = payload as PlaylistMetaInfo;
+            const playlistMeta = {
+              platform: playlistMetaInfo?.platform,
+              artist: "",
+              cover: playlistMetaInfo?.meta?.cover,
+              description: playlistMetaInfo?.meta?.description,
+              link: playlistMetaInfo?.meta?.url,
+              length: playlistMetaInfo?.meta?.length,
+              title: playlistMetaInfo?.meta?.title,
+              owner: playlistMetaInfo?.meta?.owner,
+              id: playlistMetaInfo?.unique_id,
+              nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
             };
 
-            return item;
-          });
+            setPlaylistMeta(playlistMeta);
 
-          setPlaylistResultItems((prevItems) => [...prevItems, trackItems]);
-          setResultCount((prevState) => prevState + 1);
-          return;
-        }
+            setSourcePlatform(playlistMetaInfo?.platform);
+            setIsConvertingPlaylist(true);
+            setIsLoading(false);
+            setGoButtonIsDisabled(false);
+            return;
+          } catch (e) {
+            console.log("Error with eventsource message ", e);
+          }
+        },
+      );
 
-        if (payload?.event_type === PLAYLIST_CONVERSION_MISSING_TRACK_EVENT) {
-          const metaPayload = payload?.message
-            ?.data as PlaylistMissingTrackEventPayload;
+      // track conversion event
+      eventSource.addEventListener(
+        `${PLAYLIST_CONVERSION_TRACK_EVENT}_${clientId}_${playlistUniqueId}`,
+        (eventPayload) => {
+          try {
+            const itemData: PlaylistTrackConversionData = JSON.parse(
+              eventPayload.data,
+            );
+            const trackItems = itemData?.tracks?.map((trackInfo) => {
+              const item: PlaylistResultItem = {
+                link: trackInfo.track.url,
+                explicit: trackInfo.track.explicit,
+                artist: trackInfo.track.artists.join(", "),
+                platform: trackInfo.platform,
+                title: trackInfo.track.title,
+                preview: trackInfo.track.preview,
+              };
 
-          const missingItemMeta = {
-            title: metaPayload?.meta?.item?.title,
-            platform: metaPayload?.meta?.platform,
-            url: metaPayload?.meta?.item?.url,
-          };
-          setMissingTracks((prevState) => [...prevState, missingItemMeta]);
-          return;
-        }
+              return item;
+            });
 
-        if (payload?.event_type === PLAYLIST_CONVERSION_DONE_EVENT) {
+            setPlaylistResultItems((prevItems) => [...prevItems, trackItems]);
+            setResultCount((prevState) => prevState + 1);
+            return;
+          } catch (e) {
+            console.log(
+              "Error with eventsource message in track conversion event",
+              e,
+            );
+          }
+        },
+      );
+
+      // missing tracks event
+      eventSource.addEventListener(
+        `${PLAYLIST_CONVERSION_MISSING_TRACK_EVENT}_${clientId}_${playlistUniqueId}`,
+        (eventPayload) => {
+          try {
+            const metaPayload: PlaylistMissingTrackEventPayload = JSON.parse(
+              eventPayload?.data,
+            );
+            const missingItemMeta = {
+              title: metaPayload?.meta?.item?.title,
+              platform: metaPayload?.meta?.platform,
+              url: metaPayload?.meta?.item?.url,
+            };
+            setMissingTracks((prevState) => [...prevState, missingItemMeta]);
+            return;
+          } catch (e) {
+            console.log(
+              "Error with eventsource message in track conversion missing track event",
+              e,
+            );
+          }
+        },
+      );
+
+      // (playlist) conversion done event...
+      eventSource.addEventListener(
+        `${PLAYLIST_CONVERSION_DONE_EVENT}_${clientId}_${playlistUniqueId}`,
+        (eventPayload) => {
           setIsConvertingPlaylist(false);
+          Events.unsubscribeClient(clientId, playlistUniqueId);
           return;
-        }
+        },
+      );
 
-        return Events.removeAllListeners();
-      } catch (e) {
-        console.error(e);
-        setIsConvertingPlaylist(false);
-      }
-    };
+      eventSource.addEventListener("error", (e) => {
+        console.log("Error with eventsource", e);
+      });
 
-    eventSource.onerror = (e) => {
-      Events.removeAllListeners();
-      return eventSource.close();
-    };
-    return () => {
-      Events.removeAllListeners();
-      eventSource.close();
-    };
-  }, []);
+      return () => {
+        console.log("Clearing event source connection");
+        eventSource.close();
+        console.log("Event source connection closed");
+      };
+    }
+  }, [playlistUniqueId]);
 
   const { mutateAsync: playlistMutateAsync } = useMutation({
     mutationFn: (data: { link: string; platform: string }) =>
@@ -254,8 +307,7 @@ export default function Home() {
 
     onSuccess: (data) => {
       setPlaylistUniqueId(data?.task_id);
-
-      // reset track result rendering condition states.
+      // reset the track result rendering condition states.
       setTrackResults(undefined);
       PlaylistConversionStartedToast();
       // empty previous playlist track results data
@@ -266,13 +318,12 @@ export default function Home() {
   });
 
   const handleGoButtonClick = async () => {
+    setIsLoading(true);
     if (link && isPlaylist) {
-      setIsLoading(true);
       await playlistMutateAsync({ link, platform: targetPlatform ?? "all" });
       return;
     }
 
-    setIsLoading(true);
     setGoButtonIsDisabled(true);
     await mutateAsync(link);
   };
@@ -323,12 +374,12 @@ export default function Home() {
                 await resolveLink(e.target.value);
               }}
               className={"w-full flex-auto h-14 rounded-sm px-2"}
-              ref={inputRef}
+              // ref={inputRef}
             />
 
             {/** target platforms dropdown. Shown only if the pasted link is a playlist*/}
             {isPlaylist && (
-              <div className={"mt-2 w-full md:w-fit"}>
+              <div className={"mt-2 w-full"}>
                 <PlatformSelectionSelect
                   className={"w-full"}
                   onChange={(value) => {

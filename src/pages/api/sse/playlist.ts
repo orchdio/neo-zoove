@@ -19,64 +19,41 @@ export default async function handler(
       "content-encoding": "none",
     });
 
+    const clientId = req.query.clientId as string;
+    if (!clientId) {
+      return res.status(404).send("No Client ID found.");
+    }
+
+    const taskUniqueID = req.query.taskId as string;
+    if (!taskUniqueID) {
+      return res.status(404).send("No Playlist UniqueId found.");
+    }
+
     res.write(
       `data: ${JSON.stringify({
         event_type: "connection",
       })}\n\n`,
     );
 
-    // putting this here to help mitigate the chances of events memory leaks due to client re-rendering side-effects
-    // might not have much advantage, might remove as time goes on.
-    //
-    // the same goes for other places in this file and in the useeffect in the index page.
-    // fixme(help): audit the side-effect on events and events memory leaks.
-    Events.removeAllListeners();
-    Events.on(PLAYLIST_METADATA_EVENT, (event) => {
-      console.log("Emitting conversion metadata");
-      res.write(
-        `data: ${JSON.stringify({
-          event_type: PLAYLIST_METADATA_EVENT,
-          message: event,
-        })}\n\n`,
-      );
-    });
+    // callback to write the result for the event to the client.
+    const handleTaskEvent = (taskId: string, data: any) => {
+      res.write(`event: ${data?.event_type}_${clientId}_${taskId}\n`);
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
 
-    Events.on(PLAYLIST_CONVERSION_DONE_EVENT, (event) => {
-      console.log("Emitting conversion done");
-      res.write(
-        `data: ${JSON.stringify({
-          event_type: PLAYLIST_CONVERSION_DONE_EVENT,
-          message: event,
-        })}\n\n`,
-      );
-    });
+    const eventTypes = [
+      PLAYLIST_METADATA_EVENT,
+      PLAYLIST_CONVERSION_TRACK_EVENT,
+      PLAYLIST_CONVERSION_MISSING_TRACK_EVENT,
+      PLAYLIST_CONVERSION_DONE_EVENT,
+    ];
 
-    Events.on(PLAYLIST_CONVERSION_TRACK_EVENT, (event) => {
-      console.log("Emitting conversion track");
-      res.write(
-        `data: ${JSON.stringify({
-          event_type: PLAYLIST_CONVERSION_TRACK_EVENT,
-          message: event,
-        })}\n\n`,
-      );
-    });
-
-    Events.on(PLAYLIST_CONVERSION_MISSING_TRACK_EVENT, (event) => {
-      console.log("Emitting conversion missing");
-      res.write(
-        `data: ${JSON.stringify({
-          event_type: PLAYLIST_CONVERSION_MISSING_TRACK_EVENT,
-          message: event,
-        })}\n\n`,
-      );
-    });
-
-    res.on("close", () => {
-      Events.removeAllListeners();
-      res.end();
+    eventTypes.forEach((eventType) => {
+      Events.onClientTask(eventType, clientId, taskUniqueID, handleTaskEvent);
     });
 
     res.socket?.on("close", () => {
+      Events.unsubscribeClient(clientId, taskUniqueID);
       Events.removeAllListeners();
       res.end();
     });
