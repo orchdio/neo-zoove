@@ -130,7 +130,16 @@ export const completeMetadataFromPlatforms = (
           value = track[prop];
         }
 
-        if (value && value !== "") break;
+        if (value && value !== "") {
+          // if the available preview is from youtube, we don't want to use that. this is because its more
+          // complex and tasking to implement streaming preview from youtube/youtube music than just not to use it. there is
+          // no marginal gains from the effort.
+          if (prop === "preview" && value?.includes("music.youtube.com")) {
+            value = undefined;
+          } else {
+            break;
+          }
+        }
       }
 
       if (value && value !== "") {
@@ -143,10 +152,11 @@ export const completeMetadataFromPlatforms = (
   return completedMetadata;
 };
 
-// buildTrackResultMetadata returns a populated metadata information (for the card UI) for a typical
-// track conversion. If any of the values used to populate the meta cannot be found on the original
-// (source) platform (i.e. the result for the original track we wanted to convert), then we populate
-// by extracting from the first occurence from the other platforms available. this ensures that we always
+// buildTrackResultMetadata returns populated metadata information (for the card UI) for a typical
+// track conversion.
+// If any of the values used to populate the meta cannot be found on the original
+// (source) platform (i.e., the result for the original track we wanted to convert), then we populate
+// by extracting from the first occurrence from the other platforms available. This ensures that we always
 // populate the meta, either from the original track meta (most accurate) or first occurrence from other platforms
 // (less accurate).
 export function buildTrackResultMetadata(

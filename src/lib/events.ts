@@ -97,7 +97,6 @@ class EventBus {
         this.activeClients.delete(clientId);
       }
     }
-    console.log("Unsubscribed client", clientId, "from task", taskId);
   }
 
   /**

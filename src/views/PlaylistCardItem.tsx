@@ -20,7 +20,7 @@ interface Props {
 }
 
 const TrackPlatformItem = (props: Props) => {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   const [_, copyToClipboard] = useCopyToClipboard();
   return (
@@ -53,7 +53,7 @@ const TrackPlatformItem = (props: Props) => {
                         <div className={"flex flex-row items-center space-x-2"}>
                           {/**todo: link clipboard pasting*/}
                           <Image
-                            src={`${item.platform}/icons/${theme ?? "light"}.svg`}
+                            src={`${item.platform}/icons/${resolvedTheme ?? "light"}.svg`}
                             alt={`${getPlatformPrettyNameByKey(item.platform)} icon`}
                             width={21}
                             height={21}
@@ -71,7 +71,7 @@ const TrackPlatformItem = (props: Props) => {
                   }}
                 >
                   <Image
-                    src={`/${item?.platform}/icons/${theme ?? "dark"}.svg`}
+                    src={`/${item?.platform}/icons/${resolvedTheme ?? "dark"}.svg`}
                     alt={"Apple music icon"}
                     width={21}
                     height={21}
@@ -123,7 +123,7 @@ const TrackPlatformItem = (props: Props) => {
           {/*          <div className={"flex flex-row items-center space-x-2"}>*/}
           {/*            /!**todo: link clipboard pasting*!/*/}
           {/*            <Image*/}
-          {/*              src={`${props.platform}/icons/${theme ?? "light"}.svg`}*/}
+          {/*              src={`${props.platform}/icons/${resolvedTheme ?? "light"}.svg`}*/}
           {/*              alt={`${getPlatformPrettyNameByKey(props.platform)} icon`}*/}
           {/*              width={21}*/}
           {/*              height={21}*/}
@@ -141,7 +141,7 @@ const TrackPlatformItem = (props: Props) => {
           {/*    }}*/}
           {/*  >*/}
           {/*    <Image*/}
-          {/*      src={`/${props?.platform}/icons/${theme ?? "dark"}.svg`}*/}
+          {/*      src={`/${props?.platform}/icons/${resolvedTheme ?? "dark"}.svg`}*/}
           {/*      alt={"Apple music icon"}*/}
           {/*      width={21}*/}
           {/*      height={21}*/}
