@@ -22,7 +22,7 @@ interface Props {
 }
 
 export const MissingTracksDialog = (props: Props) => {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const sourcePlatformName = getPlatformPrettyNameByKey(props?.source_platform);
   const targetPlatformName = getPlatformPrettyNameByKey(props?.target_platform);
 
@@ -46,7 +46,6 @@ export const MissingTracksDialog = (props: Props) => {
         <div className="max-h-80 overflow-y-auto pr-2">
           <div className="space-y-4">
             {props?.items?.map((item) => {
-              console.log("Item link is", item.url);
               return (
                 <div
                   className={"flex flex-row justify-between"}
@@ -54,7 +53,7 @@ export const MissingTracksDialog = (props: Props) => {
                 >
                   <div className={"flex flex-row space-x-2"}>
                     <Image
-                      src={`/${props?.source_platform}/icons/${theme}.svg`}
+                      src={`/${props?.source_platform}/icons/${resolvedTheme}.svg`}
                       alt={"Target platform icon"}
                       height={18}
                       width={18}

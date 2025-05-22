@@ -1,7 +1,7 @@
 export interface TrackConversionPayload {
   entity: string;
   platforms: Platforms;
-  unqiue_id: string;
+  unique_id: string;
 }
 
 export interface Platforms {
@@ -108,4 +108,13 @@ export interface PlaylistMissingTrackEventPayload {
     missing_platform: string;
     platform: string;
   };
+}
+
+export interface PlaylistConversionDonePayload {
+  event_type: string;
+  playlist_id: string;
+  source_platform: string;
+  target_platform: string;
+  task_id: string;
+  unique_id: string;
 }

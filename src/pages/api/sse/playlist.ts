@@ -49,6 +49,7 @@ export default async function handler(
     ];
 
     eventTypes.forEach((eventType) => {
+      console.log("Processing...", eventType);
       Events.onClientTask(eventType, clientId, taskUniqueID, handleTaskEvent);
     });
 

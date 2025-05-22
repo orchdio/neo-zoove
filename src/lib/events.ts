@@ -132,7 +132,6 @@ class EventBus {
    * remove an event listener
    */
   off(eventName: string | symbol, listener: (...args: any[]) => void) {
-    console.log("Removing event listener for event:", eventName);
     this.emitter.off(eventName, listener);
     return this;
   }
@@ -227,6 +226,8 @@ class EventBus {
           `Client ${clientId} is still subscribed to task ${taskId}. Calling the handler..`,
         );
         listener(...args);
+        // remove the listener after it's been called
+        this.off(taskPattern, listener);
       }
     });
 
