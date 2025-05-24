@@ -1,6 +1,8 @@
 import type {
   PlaylistConversionData,
+  PlaylistConversionResultPreview,
   TrackConversionPayload,
+  TrackConversionResultPreview,
 } from "@/lib/blueprint";
 import axios, { type AxiosInstance } from "axios";
 
@@ -55,6 +57,13 @@ class Orchdio {
       target_platform: targetPlatform,
     });
 
+    return response?.data?.data;
+  }
+
+  async fetchConversionPreview(
+    uniqueId: string | string[] | undefined,
+  ): Promise<TrackConversionResultPreview | PlaylistConversionResultPreview> {
+    const response = await this.axiosInstance.get(`/v1/task/${uniqueId}`);
     return response?.data?.data;
   }
 }

@@ -5,12 +5,10 @@ interface Props {
 }
 
 export const useShareResults = async ({ title, text, url }: Props) => {
-  console.log({ title, text, url });
-
   try {
     await navigator.share({ title, text, url });
-  } catch (e) {}
-
-  // trigger share
+  } catch (e) {
+    console.log("Unexpected error triggering native share", e);
+  }
   return {};
 };

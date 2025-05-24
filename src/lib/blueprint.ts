@@ -1,7 +1,20 @@
+// API and webhook related types.
 export interface TrackConversionPayload {
   entity: string;
   platforms: Platforms;
   unique_id: string;
+}
+
+export enum TaskStatus {
+  COMPLETED = "completed",
+  FAILED = "failed",
+  PENDING = "pending",
+  PROCESSING = "processing",
+}
+
+export enum Entity {
+  TRACK = "track",
+  PLAYLIST = "playlist",
 }
 
 export interface Platforms {
@@ -117,4 +130,66 @@ export interface PlaylistConversionDonePayload {
   target_platform: string;
   task_id: string;
   unique_id: string;
+}
+
+export interface TrackConversionResultPreview {
+  task_id: string;
+  payload: {
+    entity: Entity;
+    platforms: Platforms;
+  };
+  status: TaskStatus;
+}
+
+export interface PlaylistConversionResultPreview {
+  task_id: string;
+  payload: {
+    // todo: properly type this.
+    empty_tracks: any[];
+    meta: PlaylistMeta;
+    platforms: Platforms;
+    // todo: remove this from the response? because status is already on the base
+    status: TaskStatus;
+    // always going to be "playlist".
+    entity: Entity;
+    platform: string;
+    target_platform: string;
+  };
+  status: TaskStatus;
+}
+
+// open graph related types.
+interface OpenGraphImage {
+  url: string;
+  alt: string;
+}
+
+interface OpenGraph {
+  type: string;
+  siteName: string;
+  url: string;
+  images: OpenGraphImage[];
+}
+
+interface SEO {
+  titleTemplate: string;
+  defaultTitle: string;
+  description: string;
+  openGraph: OpenGraph;
+}
+
+interface LayoutProps {
+  seo: SEO;
+}
+
+interface ServerSideProps {
+  layoutProps: LayoutProps;
+}
+
+// For use with GetServerSideProps
+export type { ServerSideProps };
+
+// Alternative: If you want to be more explicit about it being page props
+export interface PageProps {
+  layoutProps: LayoutProps;
 }

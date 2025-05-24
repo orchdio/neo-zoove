@@ -26,6 +26,7 @@ interface Props {
 }
 const TrackCard = (props: Props) => {
   const [_, copyToClipboard] = useCopyToClipboard();
+  const hostname = process.env.NEXT_PUBLIC_ZOOVE_HOST ?? "https://zoove.xyz";
 
   return (
     <div className="w-full">
@@ -129,7 +130,7 @@ const TrackCard = (props: Props) => {
                           await useShareResults({
                             title: `${props?.data?.title} playlist ${props?.data?.owner ? `by ${props?.data?.owner}` : ""}`,
                             text: "Check out this playlist and its tracks on multiple digital stream platforms on Zoove.\n",
-                            url: `https://zoove.xyz?u=${props?.unique_id}`,
+                            url: `${hostname}?u=${props?.unique_id}`,
                           });
                         }}
                       />

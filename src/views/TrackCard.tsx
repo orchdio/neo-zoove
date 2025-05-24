@@ -25,6 +25,8 @@ const TrackCard = (props: Props) => {
   const { isPlaying, handlePlay, playingTrack, handlePause, progress } =
     usePlayback();
 
+  const hostname = process.env.NEXT_PUBLIC_ZOOVE_HOST ?? "https://zoove.xyz";
+
   return (
     <div className="w-full">
       <div className="w-full space-y-2">
@@ -110,7 +112,7 @@ const TrackCard = (props: Props) => {
                         await useShareResults({
                           title: `${props?.data?.title} by ${props?.data?.artist}`,
                           text: "Find the link to this track on multiple digital streaming platforms on Zoove.\n",
-                          url: `https://zoove.xyz?u=${props?.data?.taskId}`,
+                          url: `${hostname}?u=${props?.data?.taskId}`,
                         });
                       }}
                     />
