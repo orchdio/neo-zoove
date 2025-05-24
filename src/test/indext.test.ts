@@ -12,7 +12,5 @@ test("Hostnames", () => {
   const link = "https://www.deezer.com/de/track/2815968782";
   const parsedURL = new URL(link);
 
-  console.log(parsedURL);
-
   expect(parsedURL.host).toBe("www.deezer.com");
 });

@@ -12,9 +12,8 @@ interface LayoutProps {
 const Layout = ({ seo = {}, children }: LayoutProps) => {
   return (
     <>
+      <NextSeo {...seo} />
       <div className={"flex flex-col min-h-screen mx-4"}>
-        <NextSeo {...seo} />
-
         <Header />
         <main className={"flex-grow"}>{children}</main>
         <Toaster />

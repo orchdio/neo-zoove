@@ -3,15 +3,18 @@ import Input from "@/components/input/input";
 import Layout from "@/components/layout";
 import ZooveIcon from "@/components/zooveicon";
 import { useLinkResolver } from "@/hooks/useLinkResolver";
-import type {
-  PlaylistConversionDonePayload,
-  PlaylistMeta,
-  PlaylistMetaInfo,
-  PlaylistMissingTrackEventPayload,
-  PlaylistResultItem,
-  PlaylistTrackConversionData,
-  TrackConversionPayload,
-  TrackMeta,
+import {
+  Entity,
+  type PlaylistConversionDonePayload,
+  type PlaylistConversionResultPreview,
+  type PlaylistMeta,
+  type PlaylistMetaInfo,
+  type PlaylistMissingTrackEventPayload,
+  type PlaylistResultItem,
+  type PlaylistTrackConversionData,
+  type ServerSideProps,
+  type TrackConversionPayload,
+  type TrackMeta,
 } from "@/lib/blueprint";
 import {
   PLAYLIST_CONVERSION_DONE_EVENT,
@@ -42,15 +45,18 @@ import {
   UnsupportedPlatformErrorToast,
 } from "@/views/actionToasts";
 import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader } from "lucide-react";
+import type { GetServerSideProps } from "next";
 import Image from "next/image";
 import posthog from "posthog-js";
 import { type ReactElement, useEffect, useState } from "react";
 import { v7 as uuidv7 } from "uuid";
+import DefaultSeoConfig from "../../next-seo.config";
 import DancingDuckGif from "../../public/dancing-duck.gif";
 
-export default function Home() {
+export default function Home(props: ServerSideProps) {
   const [goButtonIsDisabled, setGoButtonIsDisabled] = useState(true);
   const [link, setLink] = useState<string>("");
 
@@ -136,8 +142,6 @@ export default function Home() {
         trackResults?.platforms,
         sourcePlatform ?? "",
       );
-
-      console.log("Track result is", trackResults);
       setTrackMeta(meta);
     }
   }, [trackResults, sourcePlatform]);
@@ -152,7 +156,6 @@ export default function Home() {
     },
 
     onSuccess: (data) => {
-      console.log("track conversion success", data);
       setTrackResults(data);
       setSourcePlatform(extractPlatform(link) ?? "");
       posthog.capture("conversion.track.completed", {
@@ -283,10 +286,6 @@ export default function Home() {
         `${PLAYLIST_CONVERSION_DONE_EVENT}_${clientId}_${playlistUniqueId}`,
         (eventPayload) => {
           try {
-            console.log(
-              "Playlist conversion done event received",
-              eventPayload,
-            );
             const payload: PlaylistConversionDonePayload = JSON.parse(
               eventPayload?.data,
             );
@@ -571,6 +570,102 @@ export default function Home() {
   );
 }
 
-Home.getLayout = function getLayout(page: ReactElement) {
-  return <Layout seo={{}}>{page}</Layout>;
+export const getServerSideProps: GetServerSideProps = async ({
+  query,
+  req,
+  res,
+}) => {
+  const props = {
+    layoutProps: {
+      seo: DefaultSeoConfig,
+    },
+  };
+
+  if (!query?.u) return { props };
+
+  try {
+    const resultPreview = await orchdio().fetchConversionPreview(query?.u);
+
+    // entity is track
+    if (resultPreview?.payload?.entity === Entity.TRACK) {
+      // todo: pass src and target platforms as part of the result preview api response, then use to populate building meta here.
+      const trackMeta = buildTrackResultMetadata(
+        resultPreview?.payload?.platforms,
+        "spotify",
+      );
+
+      props.layoutProps.seo.title = `${trackMeta?.title} • Track Preview`;
+      props.layoutProps.seo.description = `Get the links to this track by ${trackMeta?.artist} on your favourite digital streaming platform in just one click. Powered by Zoove`;
+      // props.layoutProps.seo.url = `https://zoove.xyz?u=${trackMeta?.id}`;
+
+      // @ts-ignore
+      props.layoutProps.seo.openGraph.title = `${trackMeta.title} by ${trackMeta.artist}`;
+      // @ts-ignore
+      props.layoutProps.seo.openGraph.type = "music.song";
+
+      // not sure what the deal with this part is yet
+      let coverURL = trackMeta?.cover;
+      // some shenanigans with deezer image asset links
+      if (coverURL?.includes("mzstatic.com")) {
+        coverURL = coverURL.replace(/{w}x{h}bb.jpg/g, "60x60bb.jpg");
+      }
+
+      if (coverURL?.includes("deezer.com")) {
+        const rq = await axios.get(coverURL);
+        coverURL = rq.request.res.responseUrl;
+      }
+
+      // @ts-ignore
+      props.layoutProps.seo.openGraph.images.unshift({
+        url: coverURL,
+      });
+    }
+
+    // entity is playlist
+    if (resultPreview?.payload?.entity === Entity.PLAYLIST) {
+      const payload = resultPreview as PlaylistConversionResultPreview;
+      const playlistMeta = payload?.payload?.meta;
+
+      props.layoutProps.seo.description = `${playlistMeta?.title} • Add this playlist to your digital streaming platform library when you connect your account. Powered by Zoove`;
+      if (playlistMeta?.owner) {
+        props.layoutProps.seo.description = `Checkout playlist "${playlistMeta?.description}" by ${playlistMeta?.owner} on ${getPlatformPrettyNameByKey(payload?.payload?.platform)} • Add this playlist to your digital streaming platform library when you connect your account. Powered by Zoove`;
+      }
+
+      // @ts-ignore
+      props.layoutProps.seo.openGraph.type = "music.playlist";
+
+      let coverURL = playlistMeta?.cover ?? "";
+      // some shenanigans with deezer image asset link
+      // intentional duplication.
+      if (coverURL?.includes("mzstatic.com")) {
+        coverURL = coverURL.replace(/{w}x{h}bb.jpg/g, "60x60bb.jpg");
+      }
+
+      if (coverURL?.includes("deezer.com")) {
+        const rq = await axios.get(coverURL);
+        coverURL = rq.request.res.responseUrl;
+      }
+
+      // @ts-ignore
+      props.layoutProps.seo.openGraph.images.unshift({
+        url: coverURL,
+      });
+    }
+  } catch (e) {
+    console.log("Error in server side props", e);
+  }
+  return { props };
+};
+
+Home.getLayout = function getLayout(page: ReactElement<ServerSideProps>) {
+  return (
+    <Layout
+      seo={{
+        ...DefaultSeoConfig,
+        ...page?.props?.layoutProps?.seo,
+      }}
+    >
+      {page}
+    </Layout>
+  );
 };
