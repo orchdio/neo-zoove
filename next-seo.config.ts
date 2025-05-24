@@ -7,7 +7,6 @@ const DefaultSeoConfig: DefaultSeoProps = {
   openGraph: {
     type: "website",
     siteName: "Zoove",
-    // todo: fetch this domain dynamically. Probably via an env config, or via parsing the host.
     url: process.env.NEXT_PUBLIC_ZOOVE_HOST ?? "https://zoove.xyz",
     images: [
       {
