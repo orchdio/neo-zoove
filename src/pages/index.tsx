@@ -4,6 +4,7 @@ import Layout from "@/components/layout";
 import ZooveIcon from "@/components/zooveicon";
 import { useLinkResolver } from "@/hooks/useLinkResolver";
 import type {
+  PlaylistConversionDonePayload,
   PlaylistMeta,
   PlaylistMetaInfo,
   PlaylistMissingTrackEventPayload,
@@ -59,6 +60,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [sourcePlatform, setSourcePlatform] = useState<string>();
   const [targetPlatform, setTargetPlatform] = useState<string>();
+  const [playlistShortID, setPlaylistShortID] = useState<string>();
 
   const [playlistUniqueId, setPlaylistUniqueId] = useState<string>();
   const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
@@ -135,6 +137,7 @@ export default function Home() {
         sourcePlatform ?? "",
       );
 
+      console.log("Track result is", trackResults);
       setTrackMeta(meta);
     }
   }, [trackResults, sourcePlatform]);
@@ -149,6 +152,7 @@ export default function Home() {
     },
 
     onSuccess: (data) => {
+      console.log("track conversion success", data);
       setTrackResults(data);
       setSourcePlatform(extractPlatform(link) ?? "");
       posthog.capture("conversion.track.completed", {
@@ -278,9 +282,24 @@ export default function Home() {
       eventSource.addEventListener(
         `${PLAYLIST_CONVERSION_DONE_EVENT}_${clientId}_${playlistUniqueId}`,
         (eventPayload) => {
-          setIsConvertingPlaylist(false);
-          Events.unsubscribeClient(clientId, playlistUniqueId);
-          return;
+          try {
+            console.log(
+              "Playlist conversion done event received",
+              eventPayload,
+            );
+            const payload: PlaylistConversionDonePayload = JSON.parse(
+              eventPayload?.data,
+            );
+            setIsConvertingPlaylist(false);
+            setPlaylistShortID(payload?.unique_id);
+            Events.unsubscribeClient(clientId, playlistUniqueId);
+            return;
+          } catch (e) {
+            console.log(
+              "Error with eventsource message in playlist conversion done event",
+              e,
+            );
+          }
         },
       );
 
@@ -296,6 +315,7 @@ export default function Home() {
     }
   }, [playlistUniqueId]);
 
+  // playlist conversion initial request mutation — calls API to kickstart converting a playlist.
   const { mutateAsync: playlistMutateAsync } = useMutation({
     mutationFn: (data: { link: string; platform: string }) =>
       orchdio().convertPlaylist(data.link, data.platform),
@@ -455,6 +475,7 @@ export default function Home() {
               cover: trackMeta?.cover!,
               length: trackMeta?.length!,
               title: trackMeta?.title!,
+              taskId: trackResults?.unique_id,
             }}
           >
             {trackResults &&
@@ -477,7 +498,7 @@ export default function Home() {
 
         {/**Playlist card here.*/}
         {!isLoading && playlistUniqueId && playlistMeta && (
-          <PlaylistCard data={playlistMeta}>
+          <PlaylistCard data={playlistMeta} unique_id={playlistShortID}>
             {!isLoading &&
               isPlaylist &&
               playlistUniqueId &&
