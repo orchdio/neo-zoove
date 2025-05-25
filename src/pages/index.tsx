@@ -111,6 +111,8 @@ export default function Home(props: ServerSideProps) {
     onLinkResolved: (resolvedLink) => {
       setLink(resolvedLink);
 
+      console.log("Resolved link", resolvedLink);
+
       if (!resolvedLink) {
         setGoButtonIsDisabled(true);
         setIsPlaylist(false);
