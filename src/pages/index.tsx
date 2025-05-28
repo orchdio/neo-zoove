@@ -209,7 +209,7 @@ export default function Home(props: ServerSideProps) {
 
         setResultCount(srcPlatformTracks?.tracks?.length);
         setIsPlaylist(true);
-        setMissingTracks(missingTracks);
+        setMissingTracks(missingTracks ?? []);
 
         setSourcePlatform(payload?.platform);
         setTargetPlatform(payload?.target_platform);
@@ -217,11 +217,13 @@ export default function Home(props: ServerSideProps) {
         setPlaylistResultItems(playlistItems);
         setPlaylistMeta(playlistMeta);
         setPlaylistUniqueId(payload?.unique_id);
+
+        console.log("Here is the playlist payload", payload);
       }
       // delete query params from url
-      const url = new URL(window.location.href);
-      url.searchParams.delete("u");
-      window.history.replaceState({}, "", url.href);
+      // const url = new URL(window.location.href);
+      // url.searchParams.delete("u");
+      // window.history.replaceState({}, "", url.href);
     }
   }, [props.layoutProps?.payload]);
 
