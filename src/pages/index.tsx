@@ -96,8 +96,6 @@ export default function Home(props: ServerSideProps) {
   const [isConvertingPlaylist, setIsConvertingPlaylist] =
     useState<boolean>(false);
 
-  // const inputRef = useRef<HTMLInputElement>(null);
-
   const maintenanceMode =
     process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "maintenance";
   const disableGoButton = maintenanceMode || goButtonIsDisabled;
@@ -138,6 +136,7 @@ export default function Home(props: ServerSideProps) {
       Object.keys(props?.layoutProps?.payload?.payload).length > 0
     ) {
       const entity = props.layoutProps.payload?.payload?.entity;
+      console.log("entity", entity);
       if (entity === Entity.TRACK) {
         const payload = props.layoutProps.payload
           ?.payload as unknown as TrackConversionPayload;
@@ -217,13 +216,11 @@ export default function Home(props: ServerSideProps) {
         setPlaylistResultItems(playlistItems);
         setPlaylistMeta(playlistMeta);
         setPlaylistUniqueId(payload?.unique_id);
-
-        console.log("Here is the playlist payload", payload);
       }
       // delete query params from url
-      // const url = new URL(window.location.href);
-      // url.searchParams.delete("u");
-      // window.history.replaceState({}, "", url.href);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("u");
+      window.history.replaceState({}, "", url.href);
     }
   }, [props.layoutProps?.payload]);
 
