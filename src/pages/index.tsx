@@ -5,6 +5,7 @@ import ZooveIcon from "@/components/zooveicon";
 import { useLinkResolver } from "@/hooks/useLinkResolver";
 import {
   Entity,
+  type MissingTrack,
   type PlaylistConversionDonePayload,
   type PlaylistConversionResultPreview,
   type PlaylistMeta,
@@ -70,13 +71,7 @@ export default function Home(props: ServerSideProps) {
 
   const [playlistUniqueId, setPlaylistUniqueId] = useState<string>();
   const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
-  const [missingTracks, setMissingTracks] = useState<
-    {
-      title: string;
-      platform: string;
-      url: string;
-    }[]
-  >([
+  const [missingTracks, setMissingTracks] = useState<MissingTrack[]>([
     {
       title: "",
       platform: "",
@@ -136,6 +131,100 @@ export default function Home(props: ServerSideProps) {
     },
   });
 
+  // handles the track preview from magic-links.
+  useEffect(() => {
+    if (
+      props?.layoutProps?.payload?.payload &&
+      Object.keys(props?.layoutProps?.payload?.payload).length > 0
+    ) {
+      const entity = props.layoutProps.payload?.payload?.entity;
+      if (entity === Entity.TRACK) {
+        const payload = props.layoutProps.payload
+          ?.payload as unknown as TrackConversionPayload;
+        const meta = buildTrackResultMetadata(
+          payload?.platforms ?? [],
+          payload?.source_platform ?? "",
+        );
+
+        setTrackMeta(meta);
+        setTrackResults(payload);
+      } else if (entity === Entity.PLAYLIST) {
+        const payload = props.layoutProps.payload
+          ?.payload as unknown as PlaylistConversionResultPreview["payload"];
+        const playlistMetaInfo = payload;
+        const playlistMeta = {
+          platform: playlistMetaInfo?.platform,
+          artist: "",
+          cover: playlistMetaInfo?.meta?.cover,
+          description: playlistMetaInfo?.meta?.description,
+          link: playlistMetaInfo?.meta?.url,
+          length: playlistMetaInfo?.meta?.length,
+          title: playlistMetaInfo?.meta?.title,
+          owner: playlistMetaInfo?.meta?.owner,
+          id: payload?.meta?.id,
+          nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
+        };
+
+        // for now, just map all the track results. we rely on the other metadata information on the payload regarding
+        // platform and target platform, used to format the data for the rendering of the playlist track items.
+
+        const srcPlatformTracks = payload.platforms[payload?.platform];
+        const targetPlatformTracks =
+          payload.platforms[payload?.target_platform];
+        const playlistItems = [];
+
+        // target platform and source platforms have the same length
+        for (let i = 0; i < targetPlatformTracks?.tracks?.length; i++) {
+          const srcTrack = srcPlatformTracks?.tracks[i];
+          const srcTrackItem: PlaylistResultItem = {
+            link: srcTrack.url,
+            artist: srcTrack.artists.join(", "),
+            platform: payload?.platform,
+            title: srcTrack.title,
+            preview: srcTrack.preview,
+            explicit: srcTrack.explicit,
+          };
+
+          const targetTrack = targetPlatformTracks?.tracks[i];
+          const targetTrackItem: PlaylistResultItem = {
+            link: targetTrack.url,
+            artist: targetTrack.artists.join(", "),
+            platform: payload?.target_platform,
+            title: targetTrack.title,
+            preview: targetTrack.preview,
+            explicit: targetTrack.explicit,
+          };
+
+          const both = [srcTrackItem, targetTrackItem];
+          playlistItems.push(both);
+        }
+
+        const missingTracks = payload.empty_tracks?.map((trackInfo, index) => {
+          return {
+            title: trackInfo?.title,
+            platform: trackInfo?.platform,
+            url: trackInfo?.url,
+          };
+        });
+
+        setResultCount(srcPlatformTracks?.tracks?.length);
+        setIsPlaylist(true);
+        setMissingTracks(missingTracks);
+
+        setSourcePlatform(payload?.platform);
+        setTargetPlatform(payload?.target_platform);
+
+        setPlaylistResultItems(playlistItems);
+        setPlaylistMeta(playlistMeta);
+        setPlaylistUniqueId(payload?.unique_id);
+      }
+      // delete query params from url
+      const url = new URL(window.location.href);
+      url.searchParams.delete("u");
+      window.history.replaceState({}, "", url.href);
+    }
+  }, [props.layoutProps?.payload]);
+
   useEffect(() => {
     if (trackResults) {
       const meta = buildTrackResultMetadata(
@@ -177,7 +266,10 @@ export default function Home(props: ServerSideProps) {
   // useEffect for playlist conversion/SSE actions & handlers.
   // Not extracted to a hook because I dont perceive much benefit over converting to hook than leaving here as it is.
   useEffect(() => {
-    if (playlistUniqueId) {
+    // short, unique ids (which are what are used to share a single link to a conversion, with users) are 9 to 10
+    // in length. We're doing this because we only want to call the SSE endpoint when we're doing a conversion, in which
+    // the playlistUniqueId would be a uuid
+    if (playlistUniqueId && playlistUniqueId.length > 9) {
       const storedId = localStorage.getItem("clientId");
       const clientId = storedId ?? uuidv7();
 
@@ -478,20 +570,21 @@ export default function Home(props: ServerSideProps) {
             }}
           >
             {trackResults &&
-              convertPlatformToResult(trackResults?.platforms)?.map(
-                (item, index) => {
-                  return (
-                    <TrackPlatformItem
-                      id={item.id}
-                      key={`$${item.id}-playlist-result-item`}
-                      platform={item?.platform}
-                      artist={item.artist}
-                      link={item.link}
-                      title={item.title}
-                    />
-                  );
-                },
-              )}
+              convertPlatformToResult(
+                props?.layoutProps?.payload?.payload?.platforms ??
+                  trackResults?.platforms,
+              )?.map((item, index) => {
+                return (
+                  <TrackPlatformItem
+                    id={item.id}
+                    key={`$${item.id}-playlist-result-item`}
+                    platform={item?.platform}
+                    artist={item.artist}
+                    link={item.link}
+                    title={item.title}
+                  />
+                );
+              })}
           </TrackCard>
         )}
 
@@ -578,6 +671,7 @@ export const getServerSideProps: GetServerSideProps = async ({
   const props = {
     layoutProps: {
       seo: DefaultSeoConfig,
+      payload: {},
     },
   };
 
@@ -585,6 +679,7 @@ export const getServerSideProps: GetServerSideProps = async ({
 
   try {
     const resultPreview = await orchdio().fetchConversionPreview(query?.u);
+    props.layoutProps.payload = resultPreview;
 
     // entity is track
     if (resultPreview?.payload?.entity === Entity.TRACK) {

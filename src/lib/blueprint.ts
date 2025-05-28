@@ -2,6 +2,8 @@
 export interface TrackConversionPayload {
   entity: string;
   platforms: Platforms;
+  source_platform: string;
+  target_platform: string;
   unique_id: string;
 }
 
@@ -23,6 +25,22 @@ export interface Platforms {
   tidal?: Track;
   applemusic?: Track;
   youtubemusic?: Track;
+}
+
+export interface PlaylistPreviewPlatforms {
+  [
+    key: string | "deezer" | "spotify" | "tidal" | "applemusio" | "youtubemusic"
+  ]: {
+    length: number | string;
+    tracks: Array<Track>;
+  };
+}
+
+export interface MissingTrack {
+  title: string;
+  platform: string;
+  url: string;
+  artistes?: string[];
 }
 
 export interface Track {
@@ -47,6 +65,7 @@ export interface TrackMeta {
   length: string;
   preview?: string;
   id: string;
+  explicit?: boolean;
 }
 
 export interface PlaylistMeta {
@@ -94,6 +113,7 @@ export interface PlaylistMetaInfo {
     url: string;
     nb_tracks: number;
     description: string;
+    id: string;
   };
   platform: string;
   unique_id: string;
@@ -137,6 +157,9 @@ export interface TrackConversionResultPreview {
   payload: {
     entity: Entity;
     platforms: Platforms;
+    source_platform: string;
+    target_platform: string;
+    unique_id: string;
   };
   status: TaskStatus;
 }
@@ -145,15 +168,16 @@ export interface PlaylistConversionResultPreview {
   task_id: string;
   payload: {
     // todo: properly type this.
-    empty_tracks: any[];
-    meta: PlaylistMeta;
-    platforms: Platforms;
+    empty_tracks: MissingTrack[];
+    meta: PlaylistMetaInfo["meta"];
+    platforms: PlaylistPreviewPlatforms;
     // todo: remove this from the response? because status is already on the base
     status: TaskStatus;
     // always going to be "playlist".
     entity: Entity;
     platform: string;
     target_platform: string;
+    unique_id: string;
   };
   status: TaskStatus;
 }
@@ -180,6 +204,7 @@ interface SEO {
 
 interface LayoutProps {
   seo: SEO;
+  payload?: TrackConversionResultPreview | PlaylistConversionResultPreview;
 }
 
 interface ServerSideProps {
@@ -193,3 +218,5 @@ export type { ServerSideProps };
 export interface PageProps {
   layoutProps: LayoutProps;
 }
+
+export class PlaylistConversionResultPreviewPayload {}
