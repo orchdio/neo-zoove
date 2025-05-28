@@ -21,8 +21,8 @@ interface Props {
 
 const TrackPlatformItem = (props: Props) => {
   const { resolvedTheme } = useTheme();
-
   const [_, copyToClipboard] = useCopyToClipboard();
+
   return (
     <Card
       className=" w-full

@@ -86,6 +86,7 @@ export const convertPlatformToResult = (platforms: Platforms) => {
         cover: track.cover,
         preview: track.preview,
         id: track.id,
+        explicit: track.explicit,
       });
     }
   });
@@ -117,6 +118,7 @@ export const completeMetadataFromPlatforms = (
         title: ["title"],
         length: ["duration", "length"],
         preview: ["preview"],
+        explicit: ["explicit"],
       };
 
       const possibleProps = keyMappings[key] || [key];
@@ -143,6 +145,7 @@ export const completeMetadataFromPlatforms = (
       }
 
       if (value && value !== "") {
+        // @ts-ignore
         completedMetadata[key as keyof typeof completedMetadata] = value;
         break;
       }
