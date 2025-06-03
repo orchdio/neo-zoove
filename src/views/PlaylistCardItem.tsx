@@ -1,3 +1,7 @@
+import { useCopyToClipboard } from "@uidotdev/usehooks";
+import { EllipsisIcon, ExternalLinkIcon } from "lucide-react";
+import Image from "next/image";
+import { useTheme } from "next-themes";
 import Text from "@/components/text/text";
 import { toast } from "@/components/toast/toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,10 +14,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { PlaylistResultItem } from "@/lib/blueprint";
 import { getPlatformPrettyNameByKey } from "@/lib/utils";
-import { useCopyToClipboard } from "@uidotdev/usehooks";
-import { EllipsisIcon, ExternalLinkIcon } from "lucide-react";
-import { useTheme } from "next-themes";
-import Image from "next/image";
 
 interface Props {
   data: Array<PlaylistResultItem>;

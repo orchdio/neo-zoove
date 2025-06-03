@@ -1,7 +1,7 @@
+import type { NextApiRequest, NextApiResponse } from "next";
 import type { WebhookEventBase } from "@/lib/blueprint";
 import Events from "@/lib/events";
 import { SvixWebhook } from "@/lib/svix";
-import type { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(
   req: NextApiRequest,

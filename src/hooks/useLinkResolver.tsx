@@ -1,10 +1,10 @@
+import { useCallback, useState } from "react";
 import { toast } from "@/components/toast/toast";
 import {
   capitalizeFirstLetter,
   fetchOriginalUrl,
   isMagicURL,
 } from "@/lib/utils";
-import { useCallback, useState } from "react";
 
 interface UseLinkResolverOptions {
   onLinkResolved?: (resolvedLink: string) => void;

@@ -1,3 +1,12 @@
+import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
+import { AnimatePresence, motion } from "framer-motion";
+import { Loader } from "lucide-react";
+import type { GetServerSideProps } from "next";
+import Image from "next/image";
+import posthog from "posthog-js";
+import { type ReactElement, useEffect, useState } from "react";
+import { v7 as uuidv7 } from "uuid";
 import Button from "@/components/button/button";
 import Input from "@/components/input/input";
 import Layout from "@/components/layout";
@@ -31,6 +40,12 @@ import {
   extractPlatform,
   getPlatformPrettyNameByKey,
 } from "@/lib/utils";
+import {
+  InvalidTargetPlatformSelectionErrorToast,
+  PlaylistConversionStartedToast,
+  UnknownErrorToast,
+  UnsupportedPlatformErrorToast,
+} from "@/views/actionToasts";
 import HeadIcons from "@/views/HeadIcons";
 import { MissingTracksDialog } from "@/views/MissingTracksDialog";
 import { PlatformSelectionSelect } from "@/views/PlatformSelectionSelect";
@@ -39,21 +54,6 @@ import PlaylistCardItem from "@/views/PlaylistCardItem";
 import ScrollableResults from "@/views/ScrollableResults";
 import TrackCard from "@/views/TrackCard";
 import TrackPlatformItem from "@/views/TrackPlatformItem";
-import {
-  InvalidTargetPlatformSelectionErrorToast,
-  PlaylistConversionStartedToast,
-  UnknownErrorToast,
-  UnsupportedPlatformErrorToast,
-} from "@/views/actionToasts";
-import { useMutation } from "@tanstack/react-query";
-import axios from "axios";
-import { AnimatePresence, motion } from "framer-motion";
-import { Loader } from "lucide-react";
-import type { GetServerSideProps } from "next";
-import Image from "next/image";
-import posthog from "posthog-js";
-import { type ReactElement, useEffect, useState } from "react";
-import { v7 as uuidv7 } from "uuid";
 import DefaultSeoConfig from "../../next-seo.config";
 import DancingDuckGif from "../../public/dancing-duck.gif";
 
@@ -112,7 +112,7 @@ export default function Home(props: ServerSideProps) {
         return;
       }
 
-      if (resolvedLink?.includes("playlist")) {
+      if (resolvedLink?.includes(Entity.PLAYLIST)) {
         setIsPlaylist(true);
         return;
       }
@@ -125,7 +125,7 @@ export default function Home(props: ServerSideProps) {
       try {
         new URL(resolvedLink);
         setGoButtonIsDisabled(false);
-      } catch (e) {}
+      } catch (_e) {}
     },
   });
 
@@ -198,7 +198,7 @@ export default function Home(props: ServerSideProps) {
           playlistItems.push(both);
         }
 
-        const missingTracks = payload.empty_tracks?.map((trackInfo, index) => {
+        const missingTracks = payload.empty_tracks?.map((trackInfo) => {
           return {
             title: trackInfo?.title,
             platform: trackInfo?.platform,
@@ -218,9 +218,9 @@ export default function Home(props: ServerSideProps) {
         setPlaylistUniqueId(payload?.unique_id);
       }
       // delete query params from url
-      const url = new URL(window.location.href);
-      url.searchParams.delete("u");
-      window.history.replaceState({}, "", url.href);
+      // const url = new URL(window.location.href);
+      // url.searchParams.delete("u");
+      // window.history.replaceState({}, "", url.href);
     }
   }, [props.layoutProps?.payload]);
 
@@ -277,9 +277,7 @@ export default function Home(props: ServerSideProps) {
 
       // not doing anything, a little bit helpful for dev/debugging...
       // console log intentionally commented out and left as it is.
-      eventSource.onmessage = (event) => {
-        // console.log("Event received", event);
-      };
+      eventSource.onmessage = (_event) => {};
 
       // playlist metadata event...
       eventSource.addEventListener(
@@ -484,7 +482,6 @@ export default function Home(props: ServerSideProps) {
                 await resolveLink(e.target.value);
               }}
               className={"w-full flex-auto h-14 rounded-sm px-2"}
-              // ref={inputRef}
             />
 
             {/** target platforms dropdown. Shown only if the pasted link is a playlist*/}
@@ -572,7 +569,7 @@ export default function Home(props: ServerSideProps) {
               convertPlatformToResult(
                 props?.layoutProps?.payload?.payload?.platforms ??
                   trackResults?.platforms,
-              )?.map((item, index) => {
+              )?.map((item) => {
                 return (
                   <TrackPlatformItem
                     id={item.id}
@@ -662,11 +659,7 @@ export default function Home(props: ServerSideProps) {
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async ({
-  query,
-  req,
-  res,
-}) => {
+export const getServerSideProps: GetServerSideProps = async ({ query }) => {
   const props = {
     layoutProps: {
       seo: DefaultSeoConfig,
@@ -722,12 +715,11 @@ export const getServerSideProps: GetServerSideProps = async ({
 
       props.layoutProps.seo.description = `${playlistMeta?.title} • Add this playlist to your digital streaming platform library when you connect your account. Powered by Zoove`;
       if (playlistMeta?.owner) {
-        props.layoutProps.seo.description = `Checkout playlist "${playlistMeta?.description}" by ${playlistMeta?.owner} on ${getPlatformPrettyNameByKey(payload?.payload?.platform)} • Add this playlist to your digital streaming platform library when you connect your account. Powered by Zoove`;
+        props.layoutProps.seo.description = `Checkout playlist "${playlistMeta?.title}" by ${playlistMeta?.owner} on ${getPlatformPrettyNameByKey(payload?.payload?.platform)} • Add this playlist to your digital streaming platform library when you connect your account. Powered by Zoove`;
       }
 
       // @ts-ignore
       props.layoutProps.seo.openGraph.type = "music.playlist";
-
       let coverURL = playlistMeta?.cover ?? "";
       // some shenanigans with deezer image asset link
       // intentional duplication.
@@ -739,7 +731,6 @@ export const getServerSideProps: GetServerSideProps = async ({
         const rq = await axios.get(coverURL);
         coverURL = rq.request.res.responseUrl;
       }
-
       // @ts-ignore
       props.layoutProps.seo.openGraph.images.unshift({
         url: coverURL,

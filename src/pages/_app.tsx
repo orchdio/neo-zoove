@@ -1,12 +1,12 @@
 import "@/styles/globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"; // biome-ignore lint/complexity/noBannedTypes: not sure how to shut linter up here and its not worth fighting the checker because of this. waste of time
 import type { NextPage } from "next";
-import { DefaultSeo } from "next-seo";
 import type { AppProps } from "next/app";
 import { Router } from "next/router";
+import { DefaultSeo } from "next-seo";
 import posthog from "posthog-js";
 import { type ReactElement, type ReactNode, useEffect } from "react";
+import { ThemeProvider } from "@/components/theme-provider";
 import DefaultSeoConfig from "../../next-seo.config"; // biome-ignore lint/complexity/noBannedTypes: not sure how to shut linter up here and its not worth fighting the checker because of this. waste of time
 
 // biome-ignore lint/complexity/noBannedTypes: not sure how to shut linter up here and its not worth fighting the checker because of this. waste of time

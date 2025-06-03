@@ -1,3 +1,7 @@
+import { useCopyToClipboard } from "@uidotdev/usehooks";
+import { EllipsisIcon, ExternalLinkIcon } from "lucide-react";
+import Image from "next/image";
+import { useTheme } from "next-themes";
 import Text from "@/components/text/text";
 import { toast } from "@/components/toast/toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,10 +13,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getPlatformPrettyNameByKey } from "@/lib/utils";
-import { useCopyToClipboard } from "@uidotdev/usehooks";
-import { EllipsisIcon, ExternalLinkIcon } from "lucide-react";
-import { useTheme } from "next-themes";
-import Image from "next/image";
 
 interface Props {
   platform: "spotify" | "applemusic" | "deezer" | "tidal" | "ytmusic" | string;
@@ -25,7 +25,7 @@ interface Props {
 const TrackPlatformItem = (props: Props) => {
   const { resolvedTheme } = useTheme();
 
-  const [copiedText, copyToClipboard] = useCopyToClipboard();
+  const [_copiedText, copyToClipboard] = useCopyToClipboard();
 
   return (
     <Card

@@ -1,5 +1,5 @@
-import { isMagicURL } from "@/lib/utils";
 import { expect, test } from "vitest";
+import { isMagicURL } from "@/lib/utils";
 
 test("Contains a short URL", () => {
   const link = "https://dzr.page.link/FFzX9CEzbpVtz4Rk9";

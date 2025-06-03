@@ -219,4 +219,16 @@ export interface PageProps {
   layoutProps: LayoutProps;
 }
 
-export class PlaylistConversionResultPreviewPayload {}
+export interface User {
+  email: string;
+  platform: string;
+  uuid: string;
+}
+
+export interface AuthJWTPayload extends User {
+  exp: number;
+
+  email: string;
+  platform: string;
+  uuid: string;
+}

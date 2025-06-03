@@ -1,7 +1,7 @@
-import type { Platforms, TrackMeta } from "@/lib/blueprint";
 import axios from "axios";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { Platforms, TrackMeta } from "@/lib/blueprint";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
