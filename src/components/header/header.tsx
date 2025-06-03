@@ -42,7 +42,7 @@ export const Header = () => {
                   className={"bg-zoove-blue-100 p-2 rounded-sm text-black"}
                 >
                   <Image
-                    src={`${signedInPlatform}/icons/${resolvedTheme ?? "light"}.svg`}
+                    src={`${zooveUser?.platform}/icons/${resolvedTheme ?? "light"}.svg`}
                     alt={`${signedInPlatform} icon`}
                     height={21}
                     width={21}
