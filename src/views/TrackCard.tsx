@@ -1,11 +1,11 @@
-import Text from "@/components/text/text";
-import { Card, CardContent } from "@/components/ui/card";
-import { usePlayback } from "@/hooks/usePlayback";
-import { useShareResults } from "@/hooks/useShareResults";
 import { motion } from "framer-motion";
 import { PauseCircle, PlayCircleIcon, Share2Icon } from "lucide-react";
 import Image from "next/image";
 import type React from "react";
+import Text from "@/components/text/text";
+import { Card, CardContent } from "@/components/ui/card";
+import { usePlayback } from "@/hooks/usePlayback";
+import { useShareResults } from "@/hooks/useShareResults";
 
 interface Props {
   data: {
@@ -26,6 +26,12 @@ const TrackCard = (props: Props) => {
     usePlayback();
 
   const hostname = process.env.NEXT_PUBLIC_ZOOVE_HOST ?? "https://zoove.xyz";
+
+  const { share } = useShareResults({
+    title: `${props?.data?.title} by ${props?.data?.artist}`,
+    text: "Find the link to this track on multiple digital streaming platforms on Zoove.\n",
+    url: `${hostname}?u=${props?.data?.taskId}`,
+  });
 
   return (
     <div className="w-full">
@@ -109,11 +115,7 @@ const TrackCard = (props: Props) => {
                       width={21}
                       height={21}
                       onClick={async () => {
-                        await useShareResults({
-                          title: `${props?.data?.title} by ${props?.data?.artist}`,
-                          text: "Find the link to this track on multiple digital streaming platforms on Zoove.\n",
-                          url: `${hostname}?u=${props?.data?.taskId}`,
-                        });
+                        await share();
                       }}
                     />
                   </div>

@@ -1,10 +1,10 @@
+import axios, { type AxiosInstance } from "axios";
 import type {
   PlaylistConversionData,
   PlaylistConversionResultPreview,
   TrackConversionPayload,
   TrackConversionResultPreview,
 } from "@/lib/blueprint";
-import axios, { type AxiosInstance } from "axios";
 
 class Orchdio {
   private axiosInstance: AxiosInstance;

@@ -1,3 +1,6 @@
+import { Share } from "lucide-react";
+import Image from "next/image";
+import { useTheme } from "next-themes";
 import Button from "@/components/button/button";
 import Text from "@/components/text/text";
 import {
@@ -11,9 +14,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { getPlatformPrettyNameByKey } from "@/lib/utils";
-import { Share } from "lucide-react";
-import { useTheme } from "next-themes";
-import Image from "next/image";
 
 interface Props {
   items: Array<{ url: string; title: string; platform: string }>;

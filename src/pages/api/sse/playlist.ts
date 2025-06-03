@@ -1,3 +1,4 @@
+import type { NextApiRequest, NextApiResponse } from "next";
 import {
   PLAYLIST_CONVERSION_DONE_EVENT,
   PLAYLIST_CONVERSION_MISSING_TRACK_EVENT,
@@ -5,7 +6,6 @@ import {
   PLAYLIST_METADATA_EVENT,
 } from "@/lib/constants";
 import Events from "@/lib/events";
-import type { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(
   req: NextApiRequest,
