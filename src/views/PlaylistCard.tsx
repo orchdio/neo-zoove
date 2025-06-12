@@ -1,12 +1,16 @@
+import { useMutation } from "@tanstack/react-query";
 import { useCopyToClipboard } from "@uidotdev/usehooks";
+import axios from "axios";
 import { CopyIcon, PlusCircleIcon, Share2Icon, ShareIcon } from "lucide-react";
 import Image from "next/image";
 import type React from "react";
+import { useState } from "react";
 import Text from "@/components/text/text";
 import { toast } from "@/components/toast/toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuthStatus } from "@/hooks/useAuth";
 import { useShareResults } from "@/hooks/useShareResults";
-import { capitalizeFirstLetter } from "@/lib/utils";
+import { capitalizeFirstLetter, getPlatformPrettyNameByKey } from "@/lib/utils";
 
 interface Props {
   data: {
@@ -22,9 +26,11 @@ interface Props {
   };
   // uniqueID exists only when the conversion is done.
   unique_id?: string;
+  // todo: get this from context or a state management system.
+  tracks?: string[];
   children?: React.ReactNode;
 }
-const TrackCard = (props: Props) => {
+const PlaylistMetaCard = (props: Props) => {
   const [_, copyToClipboard] = useCopyToClipboard();
   const hostname = process.env.NEXT_PUBLIC_ZOOVE_HOST ?? "https://zoove.xyz";
 
@@ -32,6 +38,48 @@ const TrackCard = (props: Props) => {
     title: `${props?.data?.title} playlist ${props?.data?.owner ? `by ${props?.data?.owner}` : ""}`,
     text: "Check out this playlist and its tracks on multiple digital stream platforms on Zoove.\n",
     url: `${hostname}?u=${props?.unique_id}`,
+  });
+  const { isSignedIn, zooveUser } = useAuthStatus();
+  const [isAdded, setAdded] = useState(false);
+
+  const addToPlaylistHandler = useMutation({
+    mutationFn: async () => {
+      return await axios.post(`/api/${props?.data?.platform}/add`, {
+        user: zooveUser?.uuid,
+        title: props.data.title,
+        tracks: props?.tracks,
+      });
+    },
+    onError: (_err) => {
+      toast({
+        title: "💔 Something didn't work",
+        position: "top-right",
+        description: (
+          <Text
+            content={`We could not add this playlist to your ${getPlatformPrettyNameByKey(zooveUser?.platform)} library. Please try again later.`}
+            className={"text-black"}
+          />
+        ),
+        variant: "success",
+        duration: 4000,
+      });
+    },
+    onSuccess: () => {
+      console.log("Playlist added successfully");
+      toast({
+        title: "🎉 It's done!",
+        position: "top-right",
+        description: (
+          <Text
+            content={`We have added this playlist to your ${getPlatformPrettyNameByKey(zooveUser?.platform)} library & the link available to copy.`}
+            className={"text-black"}
+          />
+        ),
+        variant: "success",
+        duration: 4000,
+      });
+      setAdded(true);
+    },
   });
 
   return (
@@ -95,31 +143,41 @@ const TrackCard = (props: Props) => {
                 />
                 <div className={"flex flex-row justify-between mt-2"}>
                   <div className={"flex flex-row items-center space-x-2"}>
+                    {/*todo: implement a drawer picker here to select platform to add it, if multiple platforms are connected.*/}
                     <PlusCircleIcon
                       width={16}
                       height={16}
                       color={"white"}
-                      opacity={0.5}
-                    />
-                    <CopyIcon
-                      width={16}
-                      height={16}
+                      opacity={isSignedIn ? 1 : 0.5}
                       onClick={async () => {
-                        await copyToClipboard(props?.data?.link);
-                        toast({
-                          title: "Playlist link copied",
-                          description: (
-                            <Text
-                              className={"text-black"}
-                              content={`📋 ${capitalizeFirstLetter(props?.data?.platform ?? "")} playlist link has been copied to clipboard`}
-                            />
-                          ),
-                          position: "top-right",
-                          variant: "success",
-                        });
+                        console.log("Trying to add to library...");
+                        console.log(props.tracks);
+                        await addToPlaylistHandler.mutateAsync();
                       }}
-                      color={"white"}
                     />
+                    {isAdded && (
+                      <CopyIcon
+                        width={16}
+                        height={16}
+                        onClick={async () => {
+                          await copyToClipboard(
+                            addToPlaylistHandler.data?.data,
+                          );
+                          toast({
+                            title: "Playlist link copied",
+                            description: (
+                              <Text
+                                className={"text-black"}
+                                content={`📋 ${capitalizeFirstLetter(props?.data?.platform ?? "")} playlist link has been copied to clipboard`}
+                              />
+                            ),
+                            position: "top-right",
+                            variant: "success",
+                          });
+                        }}
+                        color={"white"}
+                      />
+                    )}
                   </div>
                   <div className={"flex flex-row items-center space-x-2"}>
                     <ShareIcon
@@ -149,4 +207,4 @@ const TrackCard = (props: Props) => {
   );
 };
 
-export default TrackCard;
+export default PlaylistMetaCard;

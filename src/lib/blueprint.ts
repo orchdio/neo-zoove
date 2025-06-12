@@ -27,6 +27,13 @@ export interface Platforms {
   youtubemusic?: Track;
 }
 
+export enum Platform {
+  deezer = "deezer",
+  spotify = "spotify",
+  tidal = "tidal",
+  applemusic = "applemusic",
+}
+
 export interface PlaylistPreviewPlatforms {
   [
     key: string | "deezer" | "spotify" | "tidal" | "applemusio" | "youtubemusic"
@@ -132,6 +139,7 @@ export interface PlaylistResultItem {
   title: string;
   preview?: string;
   explicit?: boolean;
+  id: string;
 }
 
 export interface PlaylistMissingTrackEventPayload {

@@ -66,6 +66,30 @@ class Orchdio {
     const response = await this.axiosInstance.get(`/v1/task/${uniqueId}`);
     return response?.data?.data;
   }
+
+  async addPlaylistToLibrary(
+    platform: string | string[] | undefined,
+    user: string,
+    title: string,
+    tracks: string[],
+  ) {
+    const response = await this.axiosInstance.post(
+      `/v1/playlist/${platform}/add`,
+      {
+        user,
+        title,
+        tracks,
+      },
+      {
+        headers: {
+          "x-orchdio-key": process.env.ORCHDIO_SECRET_KEY,
+        },
+      },
+    );
+
+    console.log(response);
+    return response?.data?.data;
+  }
 }
 
 const orchdio = (
