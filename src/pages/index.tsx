@@ -665,7 +665,7 @@ export default function Home(props: ServerSideProps) {
             <ScrollableResults isConverting={isConvertingPlaylist}>
               {playlistResultItems
                 ?.filter((item) => item?.length >= 1 && item[0].title !== "")
-                ?.map((item, index) => {
+                ?.map((item) => {
                   return <PlaylistCardItem data={item} key={item[0].id} />;
                 })}
             </ScrollableResults>
