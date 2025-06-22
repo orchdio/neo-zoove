@@ -42,9 +42,9 @@ import {
 } from "@/lib/utils";
 import {
   InvalidTargetPlatformSelectionErrorToast,
-  PlaylistConversionStartedToast,
+  SuccessToast,
   UnknownErrorToast,
-  UnsupportedPlatformErrorToast,
+  WarnToast,
 } from "@/views/actionToasts";
 import HeadIcons from "@/views/HeadIcons";
 import { MissingTracksDialog } from "@/views/MissingTracksDialog";
@@ -65,9 +65,11 @@ export default function Home(props: ServerSideProps) {
   const [trackMeta, setTrackMeta] = useState<TrackMeta>();
   const [playlistMeta, setPlaylistMeta] = useState<PlaylistMeta>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [sourcePlatform, setSourcePlatform] = useState<string>();
+  const [sourcePlatform, setSourcePlatform] = useState<string>("");
   const [targetPlatform, setTargetPlatform] = useState<string>();
   const [playlistShortID, setPlaylistShortID] = useState<string>();
+
+  const [playlistTrackIds, setPlaylistTrackIds] = useState<string[]>([]);
 
   const [playlistUniqueId, setPlaylistUniqueId] = useState<string>();
   const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
@@ -88,6 +90,7 @@ export default function Home(props: ServerSideProps) {
         artist: "",
         link: "",
         title: "",
+        id: "",
       },
     ],
   ]);
@@ -182,6 +185,7 @@ export default function Home(props: ServerSideProps) {
             title: srcTrack.title,
             preview: srcTrack.preview,
             explicit: srcTrack.explicit,
+            id: srcTrack?.id,
           };
 
           const targetTrack = targetPlatformTracks?.tracks[i];
@@ -192,6 +196,7 @@ export default function Home(props: ServerSideProps) {
             title: targetTrack.title,
             preview: targetTrack.preview,
             explicit: targetTrack.explicit,
+            id: targetTrack?.id,
           };
 
           const both = [srcTrackItem, targetTrackItem];
@@ -234,6 +239,14 @@ export default function Home(props: ServerSideProps) {
     }
   }, [trackResults, sourcePlatform]);
 
+  useEffect(() => {
+    const filteredTrackIds = playlistResultItems
+      .flat()
+      .map((item) => (item?.platform === sourcePlatform ? item.id : ""))
+      .filter((item) => !!item);
+
+    setPlaylistTrackIds(filteredTrackIds);
+  }, [playlistResultItems, sourcePlatform]);
   // track conversion mutation. A track conversion is a normal POST request to orchdio api.
   const { mutateAsync } = useMutation({
     mutationFn: (link: string) => orchdio().convertTrack(link),
@@ -329,6 +342,7 @@ export default function Home(props: ServerSideProps) {
                 platform: trackInfo.platform,
                 title: trackInfo.track.title,
                 preview: trackInfo.track.preview,
+                id: trackInfo.track.id,
               };
 
               return item;
@@ -417,7 +431,13 @@ export default function Home(props: ServerSideProps) {
       setPlaylistUniqueId(data?.task_id);
       // reset the track result rendering condition states.
       setTrackResults(undefined);
-      PlaylistConversionStartedToast();
+      SuccessToast({
+        title: "🎉 Your playlist conversion has started",
+        position: "top-right",
+        description:
+          "We've started processing your playlist, you'll start seeing the results shortly",
+        duration: 4000,
+      });
       // empty previous playlist track results data
       setPlaylistResultItems([]);
       setResultCount(0);
@@ -492,7 +512,11 @@ export default function Home(props: ServerSideProps) {
                   onChange={(value) => {
                     setGoButtonIsDisabled(true);
                     if (value === "applemusic") {
-                      UnsupportedPlatformErrorToast();
+                      WarnToast({
+                        title: "💔 We're sorry, you cannot do that yet",
+                        position: "top-right",
+                        description: `We're improving our Apple Music support and it'll be available soon, please bear with us and check back`,
+                      });
                       return;
                     }
                     if (link.includes(value)) {
@@ -586,7 +610,11 @@ export default function Home(props: ServerSideProps) {
 
         {/**Playlist card here.*/}
         {!isLoading && playlistUniqueId && playlistMeta && (
-          <PlaylistCard data={playlistMeta} unique_id={playlistShortID}>
+          <PlaylistCard
+            data={playlistMeta}
+            unique_id={playlistShortID}
+            tracks={playlistTrackIds}
+          >
             {!isLoading &&
               isPlaylist &&
               playlistUniqueId &&
@@ -637,8 +665,8 @@ export default function Home(props: ServerSideProps) {
             <ScrollableResults isConverting={isConvertingPlaylist}>
               {playlistResultItems
                 ?.filter((item) => item?.length >= 1 && item[0].title !== "")
-                ?.map((item) => {
-                  return <PlaylistCardItem data={item} key={Math.random()} />;
+                ?.map((item, index) => {
+                  return <PlaylistCardItem data={item} key={item[0].id} />;
                 })}
             </ScrollableResults>
           </PlaylistCard>

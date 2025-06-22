@@ -1,17 +1,15 @@
 import { MoonIcon, SunIcon } from "lucide-react";
 import { router } from "next/client";
 import Image from "next/image";
-import Link from "next/link"; // todo: remove zoovetkn from being set in the localstorage.
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import Button from "@/components/button/button";
 import { useAuthStatus } from "@/hooks/useAuth";
-import { getPlatformPrettyNameByKey } from "@/lib/utils"; // todo: remove zoovetkn from being set in the localstorage.
+import { ConnectedPlatformsDialog } from "@/views/ConnectedPlatformsDialog";
 
-// todo: remove zoovetkn from being set in the localstorage.
 export const Header = () => {
   const { resolvedTheme, setTheme } = useTheme();
-  const { disconnectAccount, isSignedIn, zooveUser } = useAuthStatus();
-  const signedInPlatform = getPlatformPrettyNameByKey(zooveUser?.platform);
+  const { isSignedIn, zooveUser } = useAuthStatus();
 
   return (
     <header className="header">
@@ -37,20 +35,12 @@ export const Header = () => {
                   <SunIcon size={"20px"} />
                 )}
               </div>
+              {/** todo: return the needed field (connected platforms) from API & update here.*/}
               {isSignedIn && (
-                <Button
-                  className={"bg-zoove-blue-100 p-2 rounded-sm text-black"}
-                >
-                  <Image
-                    src={`${zooveUser?.platform}/icons/${resolvedTheme ?? "light"}.svg`}
-                    alt={`${signedInPlatform} icon`}
-                    height={21}
-                    width={21}
-                  />
-                  <span onClick={disconnectAccount}>Disconnect</span>
-                </Button>
+                <ConnectedPlatformsDialog
+                  activePlatforms={zooveUser?.platforms}
+                />
               )}
-
               {!isSignedIn && (
                 <Button
                   className={"bg-zoove-blue-100 p-2 rounded-sm text-black"}

@@ -27,6 +27,13 @@ export interface Platforms {
   youtubemusic?: Track;
 }
 
+export enum Platform {
+  deezer = "deezer",
+  spotify = "spotify",
+  tidal = "tidal",
+  applemusic = "applemusic",
+}
+
 export interface PlaylistPreviewPlatforms {
   [
     key: string | "deezer" | "spotify" | "tidal" | "applemusio" | "youtubemusic"
@@ -132,6 +139,7 @@ export interface PlaylistResultItem {
   title: string;
   preview?: string;
   explicit?: boolean;
+  id: string;
 }
 
 export interface PlaylistMissingTrackEventPayload {
@@ -225,10 +233,16 @@ export interface User {
   uuid: string;
 }
 
+export interface UserPlatformInfo {
+  app_id: string;
+  platform: Platform;
+  platform_id: string;
+}
+
 export interface AuthJWTPayload extends User {
   exp: number;
-
   email: string;
-  platform: string;
+  platforms: UserPlatformInfo[];
   uuid: string;
+  last_authed_platform: string;
 }

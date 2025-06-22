@@ -53,6 +53,7 @@ const handleConnect = async (platform: string) => {
         "x-orchdio-public-key": process.env.NEXT_PUBLIC_ORCHDIO_PUBLIC_API_KEY,
       },
     });
+
     window.location.href = response.data.data.url;
   } catch (e) {
     console.log("Error connecting to platform: ");
