@@ -19,7 +19,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             (p) => platform === p,
           );
 
-          console.log("Invalid platform", isValidPlatform);
           if (isValidPlatform) {
             const response = await orchdio().addPlaylistToLibrary(
               platform,
@@ -27,8 +26,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
               title,
               tracks,
             );
-
-            console.log("Api response is", response);
 
             return res.status(200).json(response);
           }

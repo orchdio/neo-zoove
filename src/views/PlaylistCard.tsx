@@ -1,16 +1,14 @@
-import { useMutation } from "@tanstack/react-query";
 import { useCopyToClipboard } from "@uidotdev/usehooks";
-import axios from "axios";
-import { CopyIcon, PlusCircleIcon, Share2Icon, ShareIcon } from "lucide-react";
+import { CopyIcon, Share2Icon, ShareIcon } from "lucide-react";
 import Image from "next/image";
 import type React from "react";
 import { useState } from "react";
 import Text from "@/components/text/text";
 import { toast } from "@/components/toast/toast";
 import { Card, CardContent } from "@/components/ui/card";
-import { useAuthStatus } from "@/hooks/useAuth";
 import { useShareResults } from "@/hooks/useShareResults";
-import { capitalizeFirstLetter, getPlatformPrettyNameByKey } from "@/lib/utils";
+import { capitalizeFirstLetter } from "@/lib/utils";
+import { AddPlaylistToPlatformLibrary } from "@/views/AddPlaylistToPlatformLibrary";
 
 interface Props {
   data: {
@@ -39,48 +37,8 @@ const PlaylistMetaCard = (props: Props) => {
     text: "Check out this playlist and its tracks on multiple digital stream platforms on Zoove.\n",
     url: `${hostname}?u=${props?.unique_id}`,
   });
-  const { isSignedIn, zooveUser } = useAuthStatus();
   const [isAdded, setAdded] = useState(false);
-
-  const addToPlaylistHandler = useMutation({
-    mutationFn: async () => {
-      return await axios.post(`/api/${props?.data?.platform}/add`, {
-        user: zooveUser?.uuid,
-        title: props.data.title,
-        tracks: props?.tracks,
-      });
-    },
-    onError: (_err) => {
-      toast({
-        title: "💔 Something didn't work",
-        position: "top-right",
-        description: (
-          <Text
-            content={`We could not add this playlist to your ${getPlatformPrettyNameByKey(zooveUser?.platform)} library. Please try again later.`}
-            className={"text-black"}
-          />
-        ),
-        variant: "success",
-        duration: 4000,
-      });
-    },
-    onSuccess: () => {
-      console.log("Playlist added successfully");
-      toast({
-        title: "🎉 It's done!",
-        position: "top-right",
-        description: (
-          <Text
-            content={`We have added this playlist to your ${getPlatformPrettyNameByKey(zooveUser?.platform)} library & the link available to copy.`}
-            className={"text-black"}
-          />
-        ),
-        variant: "success",
-        duration: 4000,
-      });
-      setAdded(true);
-    },
-  });
+  const [playlistUrl, setPlaylistUrl] = useState<string | null>(null);
 
   return (
     <div className="w-full">
@@ -143,26 +101,22 @@ const PlaylistMetaCard = (props: Props) => {
                 />
                 <div className={"flex flex-row justify-between mt-2"}>
                   <div className={"flex flex-row items-center space-x-2"}>
-                    {/*todo: implement a drawer picker here to select platform to add it, if multiple platforms are connected.*/}
-                    <PlusCircleIcon
-                      width={16}
-                      height={16}
-                      color={"white"}
-                      opacity={isSignedIn ? 1 : 0.5}
-                      onClick={async () => {
-                        console.log("Trying to add to library...");
-                        console.log(props.tracks);
-                        await addToPlaylistHandler.mutateAsync();
-                      }}
+                    <AddPlaylistToPlatformLibrary
+                      title={props?.data?.title}
+                      tracks={props?.tracks ?? []}
+                      setAdded={setAdded}
+                      setPlaylistUrl={setPlaylistUrl}
                     />
+
                     {isAdded && (
                       <CopyIcon
                         width={16}
                         height={16}
                         onClick={async () => {
-                          await copyToClipboard(
-                            addToPlaylistHandler.data?.data,
-                          );
+                          if (playlistUrl) {
+                            await copyToClipboard(playlistUrl);
+                          }
+
                           toast({
                             title: "Playlist link copied",
                             description: (

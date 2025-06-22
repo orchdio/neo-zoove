@@ -11,8 +11,6 @@ export const Header = () => {
   const { resolvedTheme, setTheme } = useTheme();
   const { isSignedIn, zooveUser } = useAuthStatus();
 
-  console.log("Sign in status is", isSignedIn);
-
   return (
     <header className="header">
       <nav className="navbar navbar-expand-lg navbar-dark bg-dark">

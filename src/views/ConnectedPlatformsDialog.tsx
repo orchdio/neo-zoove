@@ -17,36 +17,28 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { useAuthStatus } from "@/hooks/useAuth";
-import { Platform } from "@/lib/blueprint";
+import { Platform, type UserPlatformInfo } from "@/lib/blueprint";
 import { getPlatformPrettyNameByKey } from "@/lib/utils";
 import { WarnToast } from "@/views/actionToasts";
 
 interface Props {
-  activePlatforms: string[];
+  activePlatforms: UserPlatformInfo[];
 }
 
 export const ConnectedPlatformsDialog = (props: Props) => {
   const { zooveUser, disconnectPlatform, isSignedIn } = useAuthStatus();
   const { resolvedTheme } = useTheme();
 
-  console.log("Connection status is", isSignedIn);
-
-  // we get the currently signed in platform
-  // active platforms are the platforms that the user has currently connected. currently, users can connect just one platform
-  // so for now, we create an array from just the single platform.
-  // todo: return the already signed in/connected accounts in the jwt.
-  // const activePlatforms = [zooveUser?.platform];
-  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(
-    props?.activePlatforms ?? [],
-  );
+  const [connectedPlatforms, setConnectedPlatforms] = useState<
+    UserPlatformInfo[]
+  >(props?.activePlatforms ?? []);
   return (
     <div>
       <Dialog>
         <DialogTrigger asChild>
           <Button className={"bg-zoove-blue-100 p-2 rounded-sm text-black"}>
-            {/**fixme: this always assumes taking the first item in the platforms.*/}
             <Image
-              src={`${zooveUser?.platforms[0]}/icons/${resolvedTheme ?? "light"}.svg`}
+              src={`${zooveUser?.last_authed_platform}/icons/${resolvedTheme ?? "light"}.svg`}
               alt={"last connected platform icon"}
               height={21}
               width={21}
@@ -69,8 +61,12 @@ export const ConnectedPlatformsDialog = (props: Props) => {
 
           <div className={"flex flex-col  space-y-8"}>
             {Object.keys(Platform).map((plat) => {
-              const isConnected = props?.activePlatforms.includes(plat);
-              const isActive = connectedPlatforms.includes(plat);
+              const isConnected = props?.activePlatforms
+                .map((plat) => plat.platform.toString())
+                .includes(plat);
+              const isActive = connectedPlatforms
+                .map((item) => item.platform.toString())
+                .includes(plat);
               return (
                 <div className={"flex flex-row justify-between"} key={plat}>
                   <div className={"flex flex-row space-x-4"}>
@@ -108,16 +104,28 @@ export const ConnectedPlatformsDialog = (props: Props) => {
                     )}
                     <Switch
                       disabled={(!isActive && !isConnected) || !isSignedIn}
-                      checked={connectedPlatforms.includes(plat)}
+                      checked={connectedPlatforms
+                        .map((plat) => plat.platform.toString())
+                        .includes(plat)}
                       onCheckedChange={(e) => {
                         if (!e) {
                           setConnectedPlatforms(
-                            connectedPlatforms.filter((item) => item !== plat),
+                            connectedPlatforms.filter(
+                              (item) => item.platform !== plat,
+                            ),
                           );
                           disconnectPlatform(plat);
                           return;
                         }
-                        setConnectedPlatforms([...connectedPlatforms, plat]);
+                        setConnectedPlatforms([
+                          ...connectedPlatforms,
+                          // fixme: pay attention to the effect of this. does this break something else somewhere?
+                          {
+                            platform: Platform[plat as keyof typeof Platform],
+                            platform_id: "",
+                            app_id: "",
+                          },
+                        ]);
                         return;
                       }}
                     />

@@ -233,10 +233,16 @@ export interface User {
   uuid: string;
 }
 
+export interface UserPlatformInfo {
+  app_id: string;
+  platform: Platform;
+  platform_id: string;
+}
+
 export interface AuthJWTPayload extends User {
   exp: number;
-
   email: string;
-  platform: string;
+  platforms: UserPlatformInfo[];
   uuid: string;
+  last_authed_platform: string;
 }

@@ -3,19 +3,21 @@ import jwt from "jsonwebtoken";
 import _ from "lodash";
 import { useRouter } from "next/router";
 import React from "react";
-import type { AuthJWTPayload } from "@/lib/blueprint";
+import type { AuthJWTPayload, UserPlatformInfo } from "@/lib/blueprint";
 
 export function useAuthStatus() {
   const [isSignedIn, setIsSignedIn] = React.useState(false);
   const [zooveUser, setZooveUser] = React.useState<{
     email: string;
-    platforms: string[];
+    platforms: UserPlatformInfo[];
     uuid: string;
     username?: string;
+    last_authed_platform: string;
   }>({
     email: "",
-    platforms: [""],
+    platforms: [],
     uuid: "",
+    last_authed_platform: "",
   });
   const router = useRouter();
 
@@ -31,18 +33,17 @@ export function useAuthStatus() {
         setIsSignedIn(false);
         return;
       }
-      const { exp, email, platform, uuid } =
+      const { exp, email, platforms, uuid, last_authed_platform } =
         decodedToken.payload as AuthJWTPayload;
 
       if (isBefore(new Date(), fromUnixTime(exp))) {
         localStorage.setItem("zoovetkn", token as string);
-        // todo: implement API to return this field as similar to this.
         localStorage.setItem(
           "zoove-user",
-          JSON.stringify({ email, platforms: [platform], uuid }),
+          JSON.stringify({ email, platforms, uuid }),
         );
         setIsSignedIn(true);
-        setZooveUser({ email, platforms: [platform], uuid });
+        setZooveUser({ email, platforms, uuid, last_authed_platform });
         if (router.query.token) {
           router.replace(router.route, router.route, { shallow: true });
         }
@@ -72,21 +73,20 @@ export function useAuthStatus() {
     // we have gotten the platform we want to delete from:
     // after that, we delete this item from the user's "platforms" field in the currently set "user" object
     const userObj = localStorage.getItem("zoove-user");
+
     if (userObj) {
-      const userObject = JSON.parse(userObj);
-      const filteredPlatforms: string[] = userObject.platforms.filter(
-        (p: string) => p !== platform,
+      const userObject = JSON.parse(userObj) as AuthJWTPayload;
+      const filteredPlatforms: UserPlatformInfo[] = userObject.platforms.filter(
+        (p) => p.platform !== platform,
       );
 
       if (filteredPlatforms.length === 0) {
-        console.log("Logging out the only account available.");
         localStorage.removeItem("zoovetkn");
         localStorage.removeItem("zoove-user");
         setIsSignedIn(false);
         return;
       }
 
-      // fixme: in the case where at least one platform is still connected, audit status of "isSignedIn" and its side-effects globally.
       const updatedUserObject = { ...userObject, platforms: filteredPlatforms };
       localStorage.setItem("zoove-user", JSON.stringify(updatedUserObject));
     }

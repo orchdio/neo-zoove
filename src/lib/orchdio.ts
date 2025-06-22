@@ -87,7 +87,6 @@ class Orchdio {
       },
     );
 
-    console.log(response);
     return response?.data?.data;
   }
 }
