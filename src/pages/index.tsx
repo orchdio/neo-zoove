@@ -99,6 +99,8 @@ export default function Home(props: ServerSideProps) {
   const [isConvertingPlaylist, setIsConvertingPlaylist] =
     useState<boolean>(false);
 
+  // const inputRef = useRef<HTMLInputElement>(null);
+
   const maintenanceMode =
     process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "maintenance";
   const disableGoButton = maintenanceMode || goButtonIsDisabled;

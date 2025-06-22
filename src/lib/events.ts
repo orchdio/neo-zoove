@@ -173,6 +173,7 @@ class EventBus {
    * remove an event listener
    */
   off(eventName: string | symbol, listener: (...args: any[]) => void) {
+    console.log("Removing event listener for event:", eventName);
     this.emitter.off(eventName, listener);
     return this;
   }
