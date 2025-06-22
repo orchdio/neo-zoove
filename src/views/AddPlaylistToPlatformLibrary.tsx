@@ -56,7 +56,7 @@ export const AddPlaylistToPlatformLibrary = (
             className={"text-black"}
           />
         ),
-        variant: "success",
+        variant: "warning",
         duration: 4000,
       });
     },

@@ -1,4 +1,5 @@
 import { useCopyToClipboard } from "@uidotdev/usehooks";
+import he from "he";
 import { CopyIcon, Share2Icon, ShareIcon } from "lucide-react";
 import Image from "next/image";
 import type React from "react";
@@ -70,7 +71,7 @@ const PlaylistMetaCard = (props: Props) => {
                   {props?.data?.title}
                 </h2>
                 <span className={"font-semibold line-clamp-2 text-xs"}>
-                  {props.data.description}
+                  {he.decode(props.data.description)}
                 </span>
                 {props?.data?.owner && (
                   <span

@@ -35,7 +35,6 @@ export const Header = () => {
                   <SunIcon size={"20px"} />
                 )}
               </div>
-              {/** todo: return the needed field (connected platforms) from API & update here.*/}
               {isSignedIn && (
                 <ConnectedPlatformsDialog
                   activePlatforms={zooveUser?.platforms}
