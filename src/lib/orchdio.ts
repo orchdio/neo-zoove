@@ -1,8 +1,10 @@
+import axios, { type AxiosInstance } from "axios";
 import type {
   PlaylistConversionData,
+  PlaylistConversionResultPreview,
   TrackConversionPayload,
+  TrackConversionResultPreview,
 } from "@/lib/blueprint";
-import axios, { type AxiosInstance } from "axios";
 
 class Orchdio {
   private axiosInstance: AxiosInstance;
@@ -54,6 +56,36 @@ class Orchdio {
       url: link,
       target_platform: targetPlatform,
     });
+
+    return response?.data?.data;
+  }
+
+  async fetchConversionPreview(
+    uniqueId: string | string[] | undefined,
+  ): Promise<TrackConversionResultPreview | PlaylistConversionResultPreview> {
+    const response = await this.axiosInstance.get(`/v1/task/${uniqueId}`);
+    return response?.data?.data;
+  }
+
+  async addPlaylistToLibrary(
+    platform: string | string[] | undefined,
+    user: string,
+    title: string,
+    tracks: string[],
+  ) {
+    const response = await this.axiosInstance.post(
+      `/v1/playlist/${platform}/add`,
+      {
+        user,
+        title,
+        tracks,
+      },
+      {
+        headers: {
+          "x-orchdio-key": process.env.ORCHDIO_SECRET_KEY,
+        },
+      },
+    );
 
     return response?.data?.data;
   }

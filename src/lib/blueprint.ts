@@ -1,7 +1,22 @@
+// API and webhook related types.
 export interface TrackConversionPayload {
   entity: string;
   platforms: Platforms;
-  unqiue_id: string;
+  source_platform: string;
+  target_platform: string;
+  unique_id: string;
+}
+
+export enum TaskStatus {
+  COMPLETED = "completed",
+  FAILED = "failed",
+  PENDING = "pending",
+  PROCESSING = "processing",
+}
+
+export enum Entity {
+  TRACK = "track",
+  PLAYLIST = "playlist",
 }
 
 export interface Platforms {
@@ -10,6 +25,29 @@ export interface Platforms {
   tidal?: Track;
   applemusic?: Track;
   youtubemusic?: Track;
+}
+
+export enum Platform {
+  deezer = "deezer",
+  spotify = "spotify",
+  tidal = "tidal",
+  applemusic = "applemusic",
+}
+
+export interface PlaylistPreviewPlatforms {
+  [
+    key: string | "deezer" | "spotify" | "tidal" | "applemusio" | "youtubemusic"
+  ]: {
+    length: number | string;
+    tracks: Array<Track>;
+  };
+}
+
+export interface MissingTrack {
+  title: string;
+  platform: string;
+  url: string;
+  artistes?: string[];
 }
 
 export interface Track {
@@ -34,6 +72,7 @@ export interface TrackMeta {
   length: string;
   preview?: string;
   id: string;
+  explicit?: boolean;
 }
 
 export interface PlaylistMeta {
@@ -81,6 +120,7 @@ export interface PlaylistMetaInfo {
     url: string;
     nb_tracks: number;
     description: string;
+    id: string;
   };
   platform: string;
   unique_id: string;
@@ -99,6 +139,7 @@ export interface PlaylistResultItem {
   title: string;
   preview?: string;
   explicit?: boolean;
+  id: string;
 }
 
 export interface PlaylistMissingTrackEventPayload {
@@ -108,4 +149,100 @@ export interface PlaylistMissingTrackEventPayload {
     missing_platform: string;
     platform: string;
   };
+}
+
+export interface PlaylistConversionDonePayload {
+  event_type: string;
+  playlist_id: string;
+  source_platform: string;
+  target_platform: string;
+  task_id: string;
+  unique_id: string;
+}
+
+export interface TrackConversionResultPreview {
+  task_id: string;
+  payload: {
+    entity: Entity;
+    platforms: Platforms;
+    source_platform: string;
+    target_platform: string;
+    unique_id: string;
+  };
+  status: TaskStatus;
+}
+
+export interface PlaylistConversionResultPreview {
+  task_id: string;
+  payload: {
+    // todo: properly type this.
+    empty_tracks: MissingTrack[];
+    meta: PlaylistMetaInfo["meta"];
+    platforms: PlaylistPreviewPlatforms;
+    // todo: remove this from the response? because status is already on the base
+    status: TaskStatus;
+    // always going to be "playlist".
+    entity: Entity;
+    platform: string;
+    target_platform: string;
+    unique_id: string;
+  };
+  status: TaskStatus;
+}
+
+// open graph related types.
+interface OpenGraphImage {
+  url: string;
+  alt: string;
+}
+
+interface OpenGraph {
+  type: string;
+  siteName: string;
+  url: string;
+  images: OpenGraphImage[];
+}
+
+interface SEO {
+  titleTemplate: string;
+  defaultTitle: string;
+  description: string;
+  openGraph: OpenGraph;
+}
+
+interface LayoutProps {
+  seo: SEO;
+  payload?: TrackConversionResultPreview | PlaylistConversionResultPreview;
+}
+
+interface ServerSideProps {
+  layoutProps: LayoutProps;
+}
+
+// For use with GetServerSideProps
+export type { ServerSideProps };
+
+// Alternative: If you want to be more explicit about it being page props
+export interface PageProps {
+  layoutProps: LayoutProps;
+}
+
+export interface User {
+  email: string;
+  platform: string;
+  uuid: string;
+}
+
+export interface UserPlatformInfo {
+  app_id: string;
+  platform: Platform;
+  platform_id: string;
+}
+
+export interface AuthJWTPayload extends User {
+  exp: number;
+  email: string;
+  platforms: UserPlatformInfo[];
+  uuid: string;
+  last_authed_platform: string;
 }

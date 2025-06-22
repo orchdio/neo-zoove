@@ -1,9 +1,9 @@
-import {
-  Button as ShadCNButton,
-  type buttonVariants,
-} from "@/components/ui/button";
 import type { VariantProps } from "class-variance-authority";
 import { twMerge } from "tailwind-merge";
+import {
+  type buttonVariants,
+  Button as ShadCNButton,
+} from "@/components/ui/button";
 
 type ButtonProps = React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants>;

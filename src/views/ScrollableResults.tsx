@@ -3,7 +3,10 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 const ScrollableResults = ({
   children,
   isConverting,
-}: { children: ReactNode; isConverting: boolean }) => {
+}: {
+  children: ReactNode;
+  isConverting: boolean;
+}) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -19,14 +22,14 @@ const ScrollableResults = ({
     }
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  // biome-ignore lint/correctness/useExhaustiveDependencies: false negative
   useEffect(() => {
     if (autoScroll && isConverting && bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [children, isConverting, autoScroll]);
 
-  const scrollToBottom = () => {
+  const _scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     setAutoScroll(true);
   };

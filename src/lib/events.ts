@@ -22,11 +22,18 @@ class EventBus {
     Set<string> // set of taskIds this client is subscribed to
   >;
 
+  // new property to track listeners for cleanup
+  private clientListeners: Map<
+    string, // clientId
+    Map<string, (...args: any[]) => void> // taskPattern -> listener function
+  >;
+
   private constructor() {
     this.emitter = new EventEmitter();
     this.clientSubscriptions = new Map();
     this.activeClients = new Map();
     this.emitter.setMaxListeners(100);
+    this.clientListeners = new Map();
   }
 
   public static getInstance(): EventBus {
@@ -81,6 +88,9 @@ class EventBus {
           this.activeClients.delete(clientId);
         }
       }
+
+      // clean up any listeners for this specific task
+      this.cleanUpListeners(clientId, taskId);
     } else {
       // unsubscribe from all tasks
       const clientTasks = this.activeClients.get(clientId);
@@ -95,6 +105,37 @@ class EventBus {
           }
         });
         this.activeClients.delete(clientId);
+      }
+
+      const clientListenerMap = this.clientListeners.get(clientId);
+      if (clientListenerMap) {
+        for (const [taskPattern, listener] of clientListenerMap.entries()) {
+          this.emitter.off(taskPattern, listener);
+        }
+        this.clientListeners.delete(clientId);
+      }
+    }
+  }
+
+  /**
+   *
+   * @description clean up all dangling listeners for a specific task associated with a client. This is to prevent
+   * event emitter memory leaks as a lot of listeners back up and aren't cleared.
+   * @param clientId id of the client
+   * @param taskId id of a specific (unique) task
+   */
+  cleanUpListeners(clientId: string, taskId: string) {
+    const clientListenerMap = this.clientListeners.get(clientId);
+    if (clientListenerMap) {
+      console.log("Client listener map", clientListenerMap);
+      for (const [taskPattern, listener] of clientListenerMap.entries()) {
+        if (taskPattern.endsWith(`:${taskId}`)) {
+          this.emitter.off(taskPattern, listener);
+          clientListenerMap.delete(taskPattern);
+        }
+      }
+      if (clientListenerMap.size === 0) {
+        this.clientListeners.delete(clientId);
       }
     }
   }
@@ -227,6 +268,8 @@ class EventBus {
           `Client ${clientId} is still subscribed to task ${taskId}. Calling the handler..`,
         );
         listener(...args);
+        // remove the listener after it's been called
+        this.off(taskPattern, listener);
       }
     });
 

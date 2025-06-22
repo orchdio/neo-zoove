@@ -1,10 +1,11 @@
+import { motion } from "framer-motion";
+import { PauseCircle, PlayCircleIcon, Share2Icon } from "lucide-react";
+import Image from "next/image";
+import type React from "react";
 import Text from "@/components/text/text";
 import { Card, CardContent } from "@/components/ui/card";
 import { usePlayback } from "@/hooks/usePlayback";
-import { motion } from "framer-motion";
-import { PauseCircle, PlayCircleIcon } from "lucide-react";
-import Image from "next/image";
-import type React from "react";
+import { useShareResults } from "@/hooks/useShareResults";
 
 interface Props {
   data: {
@@ -15,12 +16,22 @@ interface Props {
     cover: string;
     id: string;
     link: string;
+    // fixme: still cant decide if this is a good name or something like uniqueId is better.
+    taskId: string;
   };
   children?: React.ReactNode;
 }
 const TrackCard = (props: Props) => {
   const { isPlaying, handlePlay, playingTrack, handlePause, progress } =
     usePlayback();
+
+  const hostname = process.env.NEXT_PUBLIC_ZOOVE_HOST ?? "https://zoove.xyz";
+
+  const { share } = useShareResults({
+    title: `${props?.data?.title} by ${props?.data?.artist}`,
+    text: "Find the link to this track on multiple digital streaming platforms on Zoove.\n",
+    url: `${hostname}?u=${props?.data?.taskId}`,
+  });
 
   return (
     <div className="w-full">
@@ -59,44 +70,54 @@ const TrackCard = (props: Props) => {
                     content={props?.data?.length?.toString()}
                     className="text-sm dark:text-gray-200 text-gray-300"
                   />
-                  <div
-                    className={`${!props?.data?.preview ? "opacity-40" : "opacity-100"} cursor-pointer`}
-                    onClick={() => {
-                      isPlaying && playingTrack === props?.data?.preview
-                        ? handlePause()
-                        : handlePlay(props?.data?.preview);
-                    }}
-                  >
-                    {isPlaying && playingTrack === props?.data?.preview ? (
-                      <motion.div
-                        initial={{ scale: 1 }}
-                        animate={{
-                          scale: [1, 0.9, 1],
-                          rotate: [0, 5, -5, 0],
-                        }}
-                        transition={{
-                          duration: 0.5,
-                          repeat: Number.POSITIVE_INFINITY,
-                          ease: "easeInOut",
-                        }}
-                        className="relative"
-                      >
-                        <PauseCircle
-                          className="relative z-10"
-                          color={"white"}
-                        />
-                        <div
-                          className="absolute inset-0 rounded-full border-4 border-blue-800"
-                          style={{
-                            clipPath: `polygon(0 0, ${progress}% 0, ${progress}% 100%, 0 100%)`,
-                            transition: "clip-path 0.3s linear",
-                            zIndex: 1,
+                  <div className={"flex flex-row space-x-2 items-center"}>
+                    <div
+                      className={`${!props?.data?.preview ? "opacity-40" : "opacity-100"} cursor-pointer`}
+                      onClick={() => {
+                        isPlaying && playingTrack === props?.data?.preview
+                          ? handlePause()
+                          : handlePlay(props?.data?.preview);
+                      }}
+                    >
+                      {isPlaying && playingTrack === props?.data?.preview ? (
+                        <motion.div
+                          initial={{ scale: 1 }}
+                          animate={{
+                            scale: [1, 0.9, 1],
+                            rotate: [0, 5, -5, 0],
                           }}
-                        />
-                      </motion.div>
-                    ) : (
-                      <PlayCircleIcon color={"white"} />
-                    )}
+                          transition={{
+                            duration: 0.5,
+                            repeat: Number.POSITIVE_INFINITY,
+                            ease: "easeInOut",
+                          }}
+                          className="relative"
+                        >
+                          <PauseCircle
+                            className="relative z-10"
+                            color={"white"}
+                          />
+                          <div
+                            className="absolute inset-0 rounded-full border-4 border-blue-800"
+                            style={{
+                              clipPath: `polygon(0 0, ${progress}% 0, ${progress}% 100%, 0 100%)`,
+                              transition: "clip-path 0.3s linear",
+                              zIndex: 1,
+                            }}
+                          />
+                        </motion.div>
+                      ) : (
+                        <PlayCircleIcon color={"white"} />
+                      )}
+                    </div>
+                    {/*<ShareResultDialog />*/}
+                    <Share2Icon
+                      width={21}
+                      height={21}
+                      onClick={async () => {
+                        await share();
+                      }}
+                    />
                   </div>
                 </div>
               </div>

@@ -1,11 +1,15 @@
+import { useCopyToClipboard } from "@uidotdev/usehooks";
+import he from "he";
+import { CopyIcon, Share2Icon, ShareIcon } from "lucide-react";
+import Image from "next/image";
+import type React from "react";
+import { useState } from "react";
 import Text from "@/components/text/text";
 import { toast } from "@/components/toast/toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { useShareResults } from "@/hooks/useShareResults";
 import { capitalizeFirstLetter } from "@/lib/utils";
-import { useCopyToClipboard } from "@uidotdev/usehooks";
-import { CopyIcon, PlusCircleIcon, ShareIcon } from "lucide-react";
-import Image from "next/image";
-import type React from "react";
+import { AddPlaylistToPlatformLibrary } from "@/views/AddPlaylistToPlatformLibrary";
 
 interface Props {
   data: {
@@ -19,10 +23,23 @@ interface Props {
     platform?: string;
     nb_tracks: number;
   };
+  // uniqueID exists only when the conversion is done.
+  unique_id?: string;
+  // todo: get this from context or a state management system.
+  tracks?: string[];
   children?: React.ReactNode;
 }
-const TrackCard = (props: Props) => {
+const PlaylistMetaCard = (props: Props) => {
   const [_, copyToClipboard] = useCopyToClipboard();
+  const hostname = process.env.NEXT_PUBLIC_ZOOVE_HOST ?? "https://zoove.xyz";
+
+  const { share } = useShareResults({
+    title: `${props?.data?.title} playlist ${props?.data?.owner ? `by ${props?.data?.owner}` : ""}`,
+    text: "Check out this playlist and its tracks on multiple digital stream platforms on Zoove.\n",
+    url: `${hostname}?u=${props?.unique_id}`,
+  });
+  const [isAdded, setAdded] = useState(false);
+  const [playlistUrl, setPlaylistUrl] = useState<string | null>(null);
 
   return (
     <div className="w-full">
@@ -54,7 +71,7 @@ const TrackCard = (props: Props) => {
                   {props?.data?.title}
                 </h2>
                 <span className={"font-semibold line-clamp-2 text-xs"}>
-                  {props.data.description}
+                  {he.decode(props.data.description)}
                 </span>
                 {props?.data?.owner && (
                   <span
@@ -85,38 +102,55 @@ const TrackCard = (props: Props) => {
                 />
                 <div className={"flex flex-row justify-between mt-2"}>
                   <div className={"flex flex-row items-center space-x-2"}>
-                    <PlusCircleIcon
-                      width={16}
-                      height={16}
-                      color={"white"}
-                      opacity={0.5}
+                    <AddPlaylistToPlatformLibrary
+                      title={props?.data?.title}
+                      tracks={props?.tracks ?? []}
+                      setAdded={setAdded}
+                      setPlaylistUrl={setPlaylistUrl}
                     />
-                    <CopyIcon
-                      width={16}
-                      height={16}
-                      onClick={async () => {
-                        await copyToClipboard(props?.data?.link);
-                        toast({
-                          title: "Playlist link copied",
-                          description: (
-                            <Text
-                              className={"text-black"}
-                              content={`📋 ${capitalizeFirstLetter(props?.data?.platform ?? "")} playlist link has been copied to clipboard`}
-                            />
-                          ),
-                          position: "top-right",
-                          variant: "success",
-                        });
-                      }}
-                      color={"white"}
-                    />
+
+                    {isAdded && (
+                      <CopyIcon
+                        width={16}
+                        height={16}
+                        onClick={async () => {
+                          if (playlistUrl) {
+                            await copyToClipboard(playlistUrl);
+                          }
+
+                          toast({
+                            title: "Playlist link copied",
+                            description: (
+                              <Text
+                                className={"text-black"}
+                                content={`📋 ${capitalizeFirstLetter(props?.data?.platform ?? "")} playlist link has been copied to clipboard`}
+                              />
+                            ),
+                            position: "top-right",
+                            variant: "success",
+                          });
+                        }}
+                        color={"white"}
+                      />
+                    )}
                   </div>
-                  <ShareIcon
-                    width={16}
-                    height={16}
-                    color={"white"}
-                    onClick={() => window.open(props?.data?.link, "_blank")}
-                  />
+                  <div className={"flex flex-row items-center space-x-2"}>
+                    <ShareIcon
+                      width={16}
+                      height={16}
+                      color={"white"}
+                      onClick={() => window.open(props?.data?.link, "_blank")}
+                    />
+                    {props?.unique_id && (
+                      <Share2Icon
+                        height={16}
+                        width={16}
+                        onClick={async () => {
+                          await share();
+                        }}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -128,4 +162,4 @@ const TrackCard = (props: Props) => {
   );
 };
 
-export default TrackCard;
+export default PlaylistMetaCard;

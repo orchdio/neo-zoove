@@ -1,10 +1,10 @@
+import { useCallback, useState } from "react";
 import { toast } from "@/components/toast/toast";
 import {
   capitalizeFirstLetter,
   fetchOriginalUrl,
   isMagicURL,
 } from "@/lib/utils";
-import { useCallback, useState } from "react";
 
 interface UseLinkResolverOptions {
   onLinkResolved?: (resolvedLink: string) => void;
@@ -25,16 +25,22 @@ export const useLinkResolver = ({
       // check if it's a magic/short URL
       const isShortLink = isMagicURL(link);
 
+      // strip query parameters
+      const strippedURL =
+        link?.indexOf("?") !== -1
+          ? (link?.substring(0, link?.indexOf("?")) as string)
+          : (link as string);
+
       if (!isShortLink) {
         // if not a short link, return the original link
-        onLinkResolved?.(link);
-        return link;
+        onLinkResolved?.(strippedURL);
+        return strippedURL;
       }
 
       setIsResolving(true);
 
       try {
-        const result = await fetchOriginalUrl(link);
+        const result = await fetchOriginalUrl(strippedURL);
 
         // check for unsupported entities
         const unsupportedEntity = unsupportedEntities.find((entity) =>
@@ -58,12 +64,6 @@ export const useLinkResolver = ({
           setIsResolving(false);
           return null;
         }
-
-        // strip query parameters
-        const strippedURL =
-          result?.indexOf("?") !== -1
-            ? (result?.substring(0, result?.indexOf("?")) as string)
-            : (result as string);
 
         setResolvedLink(strippedURL);
         setIsResolving(false);

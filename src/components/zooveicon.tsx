@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 interface ZooveiconProps {
   size?: number;
   width?: number;
@@ -5,6 +7,7 @@ interface ZooveiconProps {
   className?: string;
 }
 const ZooveIcon = (props: ZooveiconProps) => {
+  const id = useId();
   return (
     <svg
       className="w-[413px] h-[74px]"
@@ -22,7 +25,7 @@ const ZooveIcon = (props: ZooveiconProps) => {
       </g>
       <defs>
         <filter
-          id="filter0_b_18_17"
+          id={id}
           x="-69.0222"
           y="-69.7952"
           width="551.914"
@@ -45,7 +48,7 @@ const ZooveIcon = (props: ZooveiconProps) => {
           />
         </filter>
         <linearGradient
-          id="paint0_linear_18_17"
+          id={id}
           x1="5.5"
           y1="20"
           x2="409.769"

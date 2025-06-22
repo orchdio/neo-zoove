@@ -1,16 +1,30 @@
+import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
+import { AnimatePresence, motion } from "framer-motion";
+import { Loader } from "lucide-react";
+import type { GetServerSideProps } from "next";
+import Image from "next/image";
+import posthog from "posthog-js";
+import { type ReactElement, useEffect, useState } from "react";
+import { v7 as uuidv7 } from "uuid";
 import Button from "@/components/button/button";
 import Input from "@/components/input/input";
 import Layout from "@/components/layout";
 import ZooveIcon from "@/components/zooveicon";
 import { useLinkResolver } from "@/hooks/useLinkResolver";
-import type {
-  PlaylistMeta,
-  PlaylistMetaInfo,
-  PlaylistMissingTrackEventPayload,
-  PlaylistResultItem,
-  PlaylistTrackConversionData,
-  TrackConversionPayload,
-  TrackMeta,
+import {
+  Entity,
+  type MissingTrack,
+  type PlaylistConversionDonePayload,
+  type PlaylistConversionResultPreview,
+  type PlaylistMeta,
+  type PlaylistMetaInfo,
+  type PlaylistMissingTrackEventPayload,
+  type PlaylistResultItem,
+  type PlaylistTrackConversionData,
+  type ServerSideProps,
+  type TrackConversionPayload,
+  type TrackMeta,
 } from "@/lib/blueprint";
 import {
   PLAYLIST_CONVERSION_DONE_EVENT,
@@ -26,6 +40,12 @@ import {
   extractPlatform,
   getPlatformPrettyNameByKey,
 } from "@/lib/utils";
+import {
+  InvalidTargetPlatformSelectionErrorToast,
+  SuccessToast,
+  UnknownErrorToast,
+  WarnToast,
+} from "@/views/actionToasts";
 import HeadIcons from "@/views/HeadIcons";
 import { MissingTracksDialog } from "@/views/MissingTracksDialog";
 import { PlatformSelectionSelect } from "@/views/PlatformSelectionSelect";
@@ -34,22 +54,10 @@ import PlaylistCardItem from "@/views/PlaylistCardItem";
 import ScrollableResults from "@/views/ScrollableResults";
 import TrackCard from "@/views/TrackCard";
 import TrackPlatformItem from "@/views/TrackPlatformItem";
-import {
-  InvalidTargetPlatformSelectionErrorToast,
-  PlaylistConversionStartedToast,
-  UnknownErrorToast,
-  UnsupportedPlatformErrorToast,
-} from "@/views/actionToasts";
-import { useMutation } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "framer-motion";
-import { Loader } from "lucide-react";
-import Image from "next/image";
-import posthog from "posthog-js";
-import { type ReactElement, useEffect, useState } from "react";
-import { v7 as uuidv7 } from "uuid";
+import DefaultSeoConfig from "../../next-seo.config";
 import DancingDuckGif from "../../public/dancing-duck.gif";
 
-export default function Home() {
+export default function Home(props: ServerSideProps) {
   const [goButtonIsDisabled, setGoButtonIsDisabled] = useState(true);
   const [link, setLink] = useState<string>("");
 
@@ -57,18 +65,15 @@ export default function Home() {
   const [trackMeta, setTrackMeta] = useState<TrackMeta>();
   const [playlistMeta, setPlaylistMeta] = useState<PlaylistMeta>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [sourcePlatform, setSourcePlatform] = useState<string>();
+  const [sourcePlatform, setSourcePlatform] = useState<string>("");
   const [targetPlatform, setTargetPlatform] = useState<string>();
+  const [playlistShortID, setPlaylistShortID] = useState<string>();
+
+  const [playlistTrackIds, setPlaylistTrackIds] = useState<string[]>([]);
 
   const [playlistUniqueId, setPlaylistUniqueId] = useState<string>();
   const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
-  const [missingTracks, setMissingTracks] = useState<
-    {
-      title: string;
-      platform: string;
-      url: string;
-    }[]
-  >([
+  const [missingTracks, setMissingTracks] = useState<MissingTrack[]>([
     {
       title: "",
       platform: "",
@@ -85,6 +90,7 @@ export default function Home() {
         artist: "",
         link: "",
         title: "",
+        id: "",
       },
     ],
   ]);
@@ -111,7 +117,7 @@ export default function Home() {
         return;
       }
 
-      if (resolvedLink?.includes("playlist")) {
+      if (resolvedLink?.includes(Entity.PLAYLIST)) {
         setIsPlaylist(true);
         return;
       }
@@ -124,9 +130,106 @@ export default function Home() {
       try {
         new URL(resolvedLink);
         setGoButtonIsDisabled(false);
-      } catch (e) {}
+      } catch (_e) {}
     },
   });
+
+  // handles the track preview from magic-links.
+  useEffect(() => {
+    if (
+      props?.layoutProps?.payload?.payload &&
+      Object.keys(props?.layoutProps?.payload?.payload).length > 0
+    ) {
+      const entity = props.layoutProps.payload?.payload?.entity;
+      console.log("entity", entity);
+      if (entity === Entity.TRACK) {
+        const payload = props.layoutProps.payload
+          ?.payload as unknown as TrackConversionPayload;
+        const meta = buildTrackResultMetadata(
+          payload?.platforms ?? [],
+          payload?.source_platform ?? "",
+        );
+
+        setTrackMeta(meta);
+        setTrackResults(payload);
+      } else if (entity === Entity.PLAYLIST) {
+        const payload = props.layoutProps.payload
+          ?.payload as unknown as PlaylistConversionResultPreview["payload"];
+        const playlistMetaInfo = payload;
+        const playlistMeta = {
+          platform: playlistMetaInfo?.platform,
+          artist: "",
+          cover: playlistMetaInfo?.meta?.cover,
+          description: playlistMetaInfo?.meta?.description,
+          link: playlistMetaInfo?.meta?.url,
+          length: playlistMetaInfo?.meta?.length,
+          title: playlistMetaInfo?.meta?.title,
+          owner: playlistMetaInfo?.meta?.owner,
+          id: payload?.meta?.id,
+          nb_tracks: playlistMetaInfo?.meta?.nb_tracks,
+        };
+
+        // for now, just map all the track results. we rely on the other metadata information on the payload regarding
+        // platform and target platform, used to format the data for the rendering of the playlist track items.
+
+        const srcPlatformTracks = payload.platforms[payload?.platform];
+        const targetPlatformTracks =
+          payload.platforms[payload?.target_platform];
+        const playlistItems = [];
+
+        // target platform and source platforms have the same length
+        for (let i = 0; i < targetPlatformTracks?.tracks?.length; i++) {
+          const srcTrack = srcPlatformTracks?.tracks[i];
+          const srcTrackItem: PlaylistResultItem = {
+            link: srcTrack.url,
+            artist: srcTrack.artists.join(", "),
+            platform: payload?.platform,
+            title: srcTrack.title,
+            preview: srcTrack.preview,
+            explicit: srcTrack.explicit,
+            id: srcTrack?.id,
+          };
+
+          const targetTrack = targetPlatformTracks?.tracks[i];
+          const targetTrackItem: PlaylistResultItem = {
+            link: targetTrack.url,
+            artist: targetTrack.artists.join(", "),
+            platform: payload?.target_platform,
+            title: targetTrack.title,
+            preview: targetTrack.preview,
+            explicit: targetTrack.explicit,
+            id: targetTrack?.id,
+          };
+
+          const both = [srcTrackItem, targetTrackItem];
+          playlistItems.push(both);
+        }
+
+        const missingTracks = payload.empty_tracks?.map((trackInfo) => {
+          return {
+            title: trackInfo?.title,
+            platform: trackInfo?.platform,
+            url: trackInfo?.url,
+          };
+        });
+
+        setResultCount(srcPlatformTracks?.tracks?.length);
+        setIsPlaylist(true);
+        setMissingTracks(missingTracks ?? []);
+
+        setSourcePlatform(payload?.platform);
+        setTargetPlatform(payload?.target_platform);
+
+        setPlaylistResultItems(playlistItems);
+        setPlaylistMeta(playlistMeta);
+        setPlaylistUniqueId(payload?.unique_id);
+      }
+      // delete query params from url
+      // const url = new URL(window.location.href);
+      // url.searchParams.delete("u");
+      // window.history.replaceState({}, "", url.href);
+    }
+  }, [props.layoutProps?.payload]);
 
   useEffect(() => {
     if (trackResults) {
@@ -134,11 +237,18 @@ export default function Home() {
         trackResults?.platforms,
         sourcePlatform ?? "",
       );
-
       setTrackMeta(meta);
     }
   }, [trackResults, sourcePlatform]);
 
+  useEffect(() => {
+    const filteredTrackIds = playlistResultItems
+      .flat()
+      .map((item) => (item?.platform === sourcePlatform ? item.id : ""))
+      .filter((item) => !!item);
+
+    setPlaylistTrackIds(filteredTrackIds);
+  }, [playlistResultItems, sourcePlatform]);
   // track conversion mutation. A track conversion is a normal POST request to orchdio api.
   const { mutateAsync } = useMutation({
     mutationFn: (link: string) => orchdio().convertTrack(link),
@@ -170,7 +280,10 @@ export default function Home() {
   // useEffect for playlist conversion/SSE actions & handlers.
   // Not extracted to a hook because I dont perceive much benefit over converting to hook than leaving here as it is.
   useEffect(() => {
-    if (playlistUniqueId) {
+    // short, unique ids (which are what are used to share a single link to a conversion, with users) are 9 to 10
+    // in length. We're doing this because we only want to call the SSE endpoint when we're doing a conversion, in which
+    // the playlistUniqueId would be a uuid
+    if (playlistUniqueId && playlistUniqueId.length > 9) {
       const storedId = localStorage.getItem("clientId");
       const clientId = storedId ?? uuidv7();
 
@@ -179,9 +292,7 @@ export default function Home() {
 
       // not doing anything, a little bit helpful for dev/debugging...
       // console log intentionally commented out and left as it is.
-      eventSource.onmessage = (event) => {
-        // console.log("Event received", event);
-      };
+      eventSource.onmessage = (_event) => {};
 
       // playlist metadata event...
       eventSource.addEventListener(
@@ -233,6 +344,7 @@ export default function Home() {
                 platform: trackInfo.platform,
                 title: trackInfo.track.title,
                 preview: trackInfo.track.preview,
+                id: trackInfo.track.id,
               };
 
               return item;
@@ -278,9 +390,20 @@ export default function Home() {
       eventSource.addEventListener(
         `${PLAYLIST_CONVERSION_DONE_EVENT}_${clientId}_${playlistUniqueId}`,
         (eventPayload) => {
-          setIsConvertingPlaylist(false);
-          Events.unsubscribeClient(clientId, playlistUniqueId);
-          return;
+          try {
+            const payload: PlaylistConversionDonePayload = JSON.parse(
+              eventPayload?.data,
+            );
+            setIsConvertingPlaylist(false);
+            setPlaylistShortID(payload?.unique_id);
+            Events.unsubscribeClient(clientId, playlistUniqueId);
+            return;
+          } catch (e) {
+            console.log(
+              "Error with eventsource message in playlist conversion done event",
+              e,
+            );
+          }
         },
       );
 
@@ -296,6 +419,7 @@ export default function Home() {
     }
   }, [playlistUniqueId]);
 
+  // playlist conversion initial request mutation — calls API to kickstart converting a playlist.
   const { mutateAsync: playlistMutateAsync } = useMutation({
     mutationFn: (data: { link: string; platform: string }) =>
       orchdio().convertPlaylist(data.link, data.platform),
@@ -309,7 +433,13 @@ export default function Home() {
       setPlaylistUniqueId(data?.task_id);
       // reset the track result rendering condition states.
       setTrackResults(undefined);
-      PlaylistConversionStartedToast();
+      SuccessToast({
+        title: "🎉 Your playlist conversion has started",
+        position: "top-right",
+        description:
+          "We've started processing your playlist, you'll start seeing the results shortly",
+        duration: 4000,
+      });
       // empty previous playlist track results data
       setPlaylistResultItems([]);
       setResultCount(0);
@@ -374,7 +504,6 @@ export default function Home() {
                 await resolveLink(e.target.value);
               }}
               className={"w-full flex-auto h-14 rounded-sm px-2"}
-              // ref={inputRef}
             />
 
             {/** target platforms dropdown. Shown only if the pasted link is a playlist*/}
@@ -385,7 +514,11 @@ export default function Home() {
                   onChange={(value) => {
                     setGoButtonIsDisabled(true);
                     if (value === "applemusic") {
-                      UnsupportedPlatformErrorToast();
+                      WarnToast({
+                        title: "💔 We're sorry, you cannot do that yet",
+                        position: "top-right",
+                        description: `We're improving our Apple Music support and it'll be available soon, please bear with us and check back`,
+                      });
                       return;
                     }
                     if (link.includes(value)) {
@@ -455,29 +588,35 @@ export default function Home() {
               cover: trackMeta?.cover!,
               length: trackMeta?.length!,
               title: trackMeta?.title!,
+              taskId: trackResults?.unique_id,
             }}
           >
             {trackResults &&
-              convertPlatformToResult(trackResults?.platforms)?.map(
-                (item, index) => {
-                  return (
-                    <TrackPlatformItem
-                      id={item.id}
-                      key={`$${item.id}-playlist-result-item`}
-                      platform={item?.platform}
-                      artist={item.artist}
-                      link={item.link}
-                      title={item.title}
-                    />
-                  );
-                },
-              )}
+              convertPlatformToResult(
+                props?.layoutProps?.payload?.payload?.platforms ??
+                  trackResults?.platforms,
+              )?.map((item) => {
+                return (
+                  <TrackPlatformItem
+                    id={item.id}
+                    key={`$${item.id}-playlist-result-item`}
+                    platform={item?.platform}
+                    artist={item.artist}
+                    link={item.link}
+                    title={item.title}
+                  />
+                );
+              })}
           </TrackCard>
         )}
 
         {/**Playlist card here.*/}
         {!isLoading && playlistUniqueId && playlistMeta && (
-          <PlaylistCard data={playlistMeta}>
+          <PlaylistCard
+            data={playlistMeta}
+            unique_id={playlistShortID}
+            tracks={playlistTrackIds}
+          >
             {!isLoading &&
               isPlaylist &&
               playlistUniqueId &&
@@ -529,7 +668,7 @@ export default function Home() {
               {playlistResultItems
                 ?.filter((item) => item?.length >= 1 && item[0].title !== "")
                 ?.map((item) => {
-                  return <PlaylistCardItem data={item} key={Math.random()} />;
+                  return <PlaylistCardItem data={item} key={item[0].id} />;
                 })}
             </ScrollableResults>
           </PlaylistCard>
@@ -550,6 +689,98 @@ export default function Home() {
   );
 }
 
-Home.getLayout = function getLayout(page: ReactElement) {
-  return <Layout seo={{}}>{page}</Layout>;
+export const getServerSideProps: GetServerSideProps = async ({ query }) => {
+  const props = {
+    layoutProps: {
+      seo: DefaultSeoConfig,
+      payload: {},
+    },
+  };
+
+  if (!query?.u) return { props };
+
+  try {
+    const resultPreview = await orchdio().fetchConversionPreview(query?.u);
+    props.layoutProps.payload = resultPreview;
+
+    // entity is track
+    if (resultPreview?.payload?.entity === Entity.TRACK) {
+      // todo: pass src and target platforms as part of the result preview api response, then use to populate building meta here.
+      const trackMeta = buildTrackResultMetadata(
+        resultPreview?.payload?.platforms,
+        "spotify",
+      );
+
+      props.layoutProps.seo.title = `${trackMeta?.title} • Track Preview`;
+      props.layoutProps.seo.description = `Get the links to this track by ${trackMeta?.artist} on your favourite digital streaming platform in just one click. Powered by Zoove`;
+      // props.layoutProps.seo.url = `https://zoove.xyz?u=${trackMeta?.id}`;
+
+      // @ts-ignore
+      props.layoutProps.seo.openGraph.title = `${trackMeta.title} by ${trackMeta.artist}`;
+      // @ts-ignore
+      props.layoutProps.seo.openGraph.type = "music.song";
+
+      // not sure what the deal with this part is yet
+      let coverURL = trackMeta?.cover;
+      // some shenanigans with deezer image asset links
+      if (coverURL?.includes("mzstatic.com")) {
+        coverURL = coverURL.replace(/{w}x{h}bb.jpg/g, "60x60bb.jpg");
+      }
+
+      if (coverURL?.includes("deezer.com")) {
+        const rq = await axios.get(coverURL);
+        coverURL = rq.request.res.responseUrl;
+      }
+
+      // @ts-ignore
+      props.layoutProps.seo.openGraph.images.unshift({
+        url: coverURL,
+      });
+    }
+
+    // entity is playlist
+    if (resultPreview?.payload?.entity === Entity.PLAYLIST) {
+      const payload = resultPreview as PlaylistConversionResultPreview;
+      const playlistMeta = payload?.payload?.meta;
+
+      props.layoutProps.seo.description = `${playlistMeta?.title} • Add this playlist to your digital streaming platform library when you connect your account. Powered by Zoove`;
+      if (playlistMeta?.owner) {
+        props.layoutProps.seo.description = `Checkout playlist "${playlistMeta?.title}" by ${playlistMeta?.owner} on ${getPlatformPrettyNameByKey(payload?.payload?.platform)} • Add this playlist to your digital streaming platform library when you connect your account. Powered by Zoove`;
+      }
+
+      // @ts-ignore
+      props.layoutProps.seo.openGraph.type = "music.playlist";
+      let coverURL = playlistMeta?.cover ?? "";
+      // some shenanigans with deezer image asset link
+      // intentional duplication.
+      if (coverURL?.includes("mzstatic.com")) {
+        coverURL = coverURL.replace(/{w}x{h}bb.jpg/g, "60x60bb.jpg");
+      }
+
+      if (coverURL?.includes("deezer.com")) {
+        const rq = await axios.get(coverURL);
+        coverURL = rq.request.res.responseUrl;
+      }
+      // @ts-ignore
+      props.layoutProps.seo.openGraph.images.unshift({
+        url: coverURL,
+      });
+    }
+  } catch (e) {
+    console.log("Error in server side props", e);
+  }
+  return { props };
+};
+
+Home.getLayout = function getLayout(page: ReactElement<ServerSideProps>) {
+  return (
+    <Layout
+      seo={{
+        ...DefaultSeoConfig,
+        ...page?.props?.layoutProps?.seo,
+      }}
+    >
+      {page}
+    </Layout>
+  );
 };

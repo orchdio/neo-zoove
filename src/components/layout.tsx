@@ -1,8 +1,8 @@
+import { NextSeo } from "next-seo";
+import type React from "react";
 import { Footer } from "@/components/footer/footer";
 import { Header } from "@/components/header/header";
 import { Toaster } from "@/components/ui/sonner";
-import { NextSeo } from "next-seo";
-import type React from "react";
 
 interface LayoutProps {
   // fixme: using any for now. properly type when its appropriate.
@@ -12,9 +12,8 @@ interface LayoutProps {
 const Layout = ({ seo = {}, children }: LayoutProps) => {
   return (
     <>
+      <NextSeo {...seo} robotsProps={{ noarchive: true }} />
       <div className={"flex flex-col min-h-screen mx-4"}>
-        <NextSeo {...seo} />
-
         <Header />
         <main className={"flex-grow"}>{children}</main>
         <Toaster />

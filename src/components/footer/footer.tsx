@@ -39,7 +39,7 @@ export const Footer = () => {
           />
         </div>
         <div className={"order-1 md:order-2 md:w-96 lg:w-[32rem]"}>
-          <Waitlist />
+          <Waitlist show_label placeholder={"Join our waitlist"} />
         </div>
       </div>
     </footer>

@@ -1,3 +1,11 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import axios, { AxiosError } from "axios";
+import { MailIcon } from "lucide-react";
+import posthog from "posthog-js";
+import { useId } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import Button from "@/components/button/button";
 import Input from "@/components/input/input";
 import Text from "@/components/text/text";
@@ -9,19 +17,16 @@ import {
   FormItem,
   FormLabel,
 } from "@/components/ui/form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import axios, { AxiosError } from "axios";
-import { MailIcon } from "lucide-react";
-import posthog from "posthog-js";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 
 const FormSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-const Waitlist = () => {
+interface Props {
+  placeholder: string;
+  show_label: boolean;
+}
+const Waitlist = (props: Props) => {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -98,6 +103,7 @@ const Waitlist = () => {
     });
   });
 
+  const id = useId();
   return (
     <div className={"justify-center"}>
       <div>
@@ -112,7 +118,9 @@ const Waitlist = () => {
               render={({ field }) => {
                 const errorMessage = form?.formState?.errors?.email?.message;
                 return (
-                  <FormItem className={"relative flex h-8 flex-auto flex-col"}>
+                  <FormItem
+                    className={"relative flex h-8 flex-auto flex-col mt-1"}
+                  >
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-blue-500">
                       <MailIcon className="h-5 w-5 text-blue-500" />
                     </div>
@@ -120,13 +128,13 @@ const Waitlist = () => {
                       <Input
                         {...field}
                         type="email"
-                        id="email"
-                        placeholder="Join our wait list"
+                        id={id}
+                        placeholder={props.placeholder}
                         className="w-full rounded-md py-1 pl-10 pr-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:ring dark:ring-gray-500"
                       />
                     </FormControl>
                     <FormLabel>
-                      {!errorMessage && (
+                      {!errorMessage && props.show_label && (
                         <Text
                           content={"We'll never spam you"}
                           className={

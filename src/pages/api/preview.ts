@@ -14,7 +14,6 @@ export default async function handler(
 
     if (method === "GET") {
       const link = url as string;
-      console.log("Link page", link);
       const preview = await getLinkPreview(link, {
         // @ts-ignore
         resolveDNSHost: async (url: string) => {
