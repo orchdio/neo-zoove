@@ -654,10 +654,10 @@
   resolved "https://registry.yarnpkg.com/@ladle/react-context/-/react-context-1.0.1.tgz#007ea641e4a1b25cafb8f5672977fdd1f9bb6f91"
   integrity sha512-xVQ8siyOEQG6e4Knibes1uA3PTyXnqiMmfSmd5pIbkzeDty8NCBtYHhTXSlfmcDNEsw/G8OzNWo4VbyQAVDl2A==
 
-"@ladle/react@^5.0.1":
-  version "5.0.3"
-  resolved "https://registry.yarnpkg.com/@ladle/react/-/react-5.0.3.tgz#727c30d3a743f0fd39bccbc7dfed314050f06cbe"
-  integrity sha512-8Zl+n3GREf6riIUU/xybYwZrDRhbJ0vl/Ulfz6M75zsWgP/0dqW4sxSZnd6lB4EksRyKT2jqeeLYsRqdUK9f/Q==
+"@ladle/react@5.0.1":
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/@ladle/react/-/react-5.0.1.tgz#450f376580cc3946fc3d34d9409455c1c8e108f1"
+  integrity sha512-i1eNwttR+Y1ISoQqlfLNC00k6x4tYQVcoKr/s6e/tYbJr8wUKnYUvH5YzlVTp53oUgNVRWOXP8d4MNM/oOqMdw==
   dependencies:
     "@babel/code-frame" "^7.26.2"
     "@babel/core" "^7.26.0"
@@ -681,7 +681,7 @@
     get-port "^7.1.0"
     globby "^14.0.2"
     history "^5.3.0"
-    koa "^2.15.4"
+    koa "^2.15.3"
     koa-connect "^2.1.0"
     lodash.merge "^4.6.2"
     msw "^2.7.0"
@@ -3144,7 +3144,7 @@ koa-convert@^2.0.0:
     co "^4.6.0"
     koa-compose "^4.1.0"
 
-koa@^2.15.4:
+koa@^2.15.3:
   version "2.16.2"
   resolved "https://registry.yarnpkg.com/koa/-/koa-2.16.2.tgz#1292a3b415a9b9f3dd6872c1835229630a4ecae3"
   integrity sha512-+CCssgnrWKx9aI3OeZwroa/ckG4JICxvIFnSiOUyl2Uv+UTI+xIw0FfFrWS7cQFpoePpr9o8csss7KzsTzNL8Q==
