@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": "^22"
+    "node": "22.13.0"
   },
   "scripts": {
     "dev": "next dev --turbopack",
@@ -44,7 +44,7 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.55.0",
     "share-api-polyfill": "^1.1.1",
-    "sonner": "^2.0.1",
+    "sonner": "2.0.1",
     "svix": "^1.62.0",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",

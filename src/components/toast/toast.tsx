@@ -61,39 +61,3 @@ export function toast(props: ToastProps) {
     },
   });
 }
-
-// export function toast(props: Omit<ToastProps, "id">) {
-//   return <Toaster {...props} />;
-//   // return sonnerToast.custom((id) => {
-//   //   return <Toast id={id} button={props.button} {...props} />;
-//   // });
-// }
-
-// export default function Headless() {
-//     return (
-//         <button
-//             className="relative flex h-10 flex-shrink-0 items-center justify-center gap-2 overflow-hidden rounded-full bg-white px-4 text-sm font-medium shadow-sm transition-all hover:bg-[#FAFAFA] dark:bg-[#161615] dark:hover:bg-[#1A1A19] dark:text-white"
-//             onClick={() => {
-//                 toast({
-//                     title: 'This is a headless toast',
-//                     description: 'You have full control of styles and jsx, while still having the animations.',
-//                     button: {
-//                         label: 'Reply',
-//                         onClick: () => sonnerToast.dismiss(),
-//                     },
-//                 });
-//             }}
-//         >
-//             Render toast
-//         </button>
-//     );
-// };
-// <button
-//     className="rounded bg-indigo-50 px-3 py-1 text-sm font-semibold text-indigo-600 hover:bg-indigo-100"
-//     onClick={() => {
-//         button.onClick();
-//         sonnerToast.dismiss(id);
-//     }}
-// >
-//     {button.label}
-// </button>
