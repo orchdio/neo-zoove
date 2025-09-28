@@ -46,12 +46,12 @@ const PlaylistMetaCard = (props: Props) => {
       <div className="w-full space-y-2">
         <Card
           className={`
-            w-full 
+            w-full
             bg-zoove-red-100
             dark:bg-zoove-red-100
-            sm:w-full 
-            md:w-full 
-            lg:w-full 
+            sm:w-full
+            md:w-full
+            lg:w-full
             xl:w-full
           `}
         >
@@ -71,7 +71,7 @@ const PlaylistMetaCard = (props: Props) => {
                   {props?.data?.title}
                 </h2>
                 <span className={"font-semibold line-clamp-2 text-xs"}>
-                  {he.decode(props.data.description)}
+                  {he.decode(props.data?.description ?? "")}
                 </span>
                 {props?.data?.owner && (
                   <span
