@@ -33,6 +33,8 @@ const spotifyScopes = [
   "user-read-recently-played",
   "user-top-read",
   "user-library-modify",
+  "user-library-read",
+  "user-follow-read",
 ];
 
 const redirectURLs = {
