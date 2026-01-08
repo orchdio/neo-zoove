@@ -60,6 +60,7 @@ export const getPlatformPrettyNameByKey = (key: string) => {
     tidal: "TIDAL",
     ytmusic: "YouTube Music",
     spotify: "Spotify",
+    soundcloud: "Soundcloud",
   };
 
   return options[key as keyof typeof options];

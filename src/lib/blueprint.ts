@@ -246,3 +246,28 @@ export interface AuthJWTPayload extends User {
   uuid: string;
   last_authed_platform: string;
 }
+
+export interface AppleMusicAuthDataResponse {
+  authorization: {
+    code: string;
+    id_token: string;
+    state: string;
+  };
+  user?: {
+    firstName: string;
+    lastName: string;
+  };
+}
+
+export interface AppleMusicDecodedData {
+  iss: string;
+  aud: string;
+  iat: number;
+  sub: string;
+  nonce: string;
+  c_hash: string;
+  email: string;
+  email_verified: string;
+  auth_time: number;
+  nonce_supported: boolean;
+}

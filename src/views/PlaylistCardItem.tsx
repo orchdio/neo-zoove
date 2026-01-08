@@ -33,25 +33,88 @@ const TrackPlatformItem = (props: Props) => {
     >
       <CardContent>
         <div className={"space-y-2"}>
-          {/*{pick(props?.data, 20)?.map((itemRows, index) => {*/}
-          {/*  return (*/}
           {props?.data.map((item, index) => {
+            console.log("Each playlist item conversion is", item.link);
             return (
               <div
                 key={item.link}
                 className={
-                  "p-4 border rounded-lg flex flex-row items-center justify-between border-green-950 dark:border-accent cursor-pointer"
+                  "p-4 border rounded-lg flex flex-col md:flex-row md:items-center border-green-950 dark:border-accent cursor-pointer gap-2 md:gap-4"
                 }
               >
+                <div className="flex flex-row items-center justify-between gap-2 w-full md:w-auto md:flex-1 md:min-w-0 md:justify-start">
+                  <div
+                    className="flex flex-row items-center space-x-2 min-w-0 flex-1 md:flex-initial"
+                    onClick={async () => {
+                      await copyToClipboard(item.link);
+                      toast({
+                        title: "Link Copied",
+                        description: (
+                          <div
+                            className={"flex flex-row items-center space-x-2"}
+                          >
+                            <Image
+                              src={`${item.platform}/icons/${resolvedTheme ?? "light"}.svg`}
+                              alt={`${getPlatformPrettyNameByKey(item.platform)} icon`}
+                              width={21}
+                              height={21}
+                            />
+                            <Text
+                              content={`${getPlatformPrettyNameByKey(item.platform)} link copied to clipboard`}
+                              className={"text-black truncate"}
+                            />
+                          </div>
+                        ),
+                        position: "top-right",
+                        duration: 3000,
+                        variant: "success",
+                      });
+                    }}
+                  >
+                    <Image
+                      src={`/${item?.platform}/icons/${resolvedTheme ?? "dark"}.svg`}
+                      alt={"Apple music icon"}
+                      width={21}
+                      height={21}
+                      className="shrink-0"
+                    />
+                    <Text
+                      content={item?.title}
+                      className={"truncate text-white"}
+                    />
+                  </div>
+
+                  <div className="md:hidden shrink-0">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <EllipsisIcon />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            window.open(item?.link, "_blank");
+                          }}
+                        >
+                          <ExternalLinkIcon />
+                          <DropdownMenuLabel>
+                            <Text
+                              content={`Open on ${getPlatformPrettyNameByKey(item.platform)}`}
+                            />
+                          </DropdownMenuLabel>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+
                 <div
-                  className={"flex flex-row items-center space-x-4 truncate"}
+                  className="ml-[29px] md:ml-0 md:flex md:items-center md:flex-1 md:min-w-0"
                   onClick={async () => {
                     await copyToClipboard(item.link);
                     toast({
                       title: "Link Copied",
                       description: (
                         <div className={"flex flex-row items-center space-x-2"}>
-                          {/**todo: link clipboard pasting*/}
                           <Image
                             src={`${item.platform}/icons/${resolvedTheme ?? "light"}.svg`}
                             alt={`${getPlatformPrettyNameByKey(item.platform)} icon`}
@@ -70,18 +133,13 @@ const TrackPlatformItem = (props: Props) => {
                     });
                   }}
                 >
-                  <Image
-                    src={`/${item?.platform}/icons/${resolvedTheme ?? "dark"}.svg`}
-                    alt={"Apple music icon"}
-                    width={21}
-                    height={21}
-                  />
                   <Text
-                    content={item?.title}
-                    className={"truncate text-white"}
+                    content={item?.artist}
+                    className={"truncate text-white text-xs"}
                   />
                 </div>
-                <div className={"flex flex-row space-x-2"}>
+
+                <div className="hidden md:flex md:flex-row md:space-x-2 md:shrink-0">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <EllipsisIcon />
@@ -105,71 +163,6 @@ const TrackPlatformItem = (props: Props) => {
               </div>
             );
           })}
-          {/*  )*/}
-          {/*})}*/}
-
-          {/*<div*/}
-          {/*  className={*/}
-          {/*    "p-4 border rounded-lg flex flex-row items-center justify-between border-green-950 dark:border-accent cursor-pointer"*/}
-          {/*  }*/}
-          {/*>*/}
-          {/*  <div*/}
-          {/*    className={"flex flex-row items-center space-x-4 truncate"}*/}
-          {/*    onClick={async () => {*/}
-          {/*      await copyToClipboard(props?.link);*/}
-          {/*      toast({*/}
-          {/*        title: "Link Copied",*/}
-          {/*        description: (*/}
-          {/*          <div className={"flex flex-row items-center space-x-2"}>*/}
-          {/*            /!**todo: link clipboard pasting*!/*/}
-          {/*            <Image*/}
-          {/*              src={`${props.platform}/icons/${resolvedTheme ?? "light"}.svg`}*/}
-          {/*              alt={`${getPlatformPrettyNameByKey(props.platform)} icon`}*/}
-          {/*              width={21}*/}
-          {/*              height={21}*/}
-          {/*            />*/}
-          {/*            <Text*/}
-          {/*              content={`${getPlatformPrettyNameByKey(props.platform)} link copied to clipboard`}*/}
-          {/*              className={"text-black truncate"}*/}
-          {/*            />*/}
-          {/*          </div>*/}
-          {/*        ),*/}
-          {/*        position: "top-right",*/}
-          {/*        duration: 3000,*/}
-          {/*        variant: "success",*/}
-          {/*      });*/}
-          {/*    }}*/}
-          {/*  >*/}
-          {/*    <Image*/}
-          {/*      src={`/${props?.platform}/icons/${resolvedTheme ?? "dark"}.svg`}*/}
-          {/*      alt={"Apple music icon"}*/}
-          {/*      width={21}*/}
-          {/*      height={21}*/}
-          {/*    />*/}
-          {/*    <Text content={props?.title} className={"truncate text-white"} />*/}
-          {/*  </div>*/}
-          {/*  <div className={"flex flex-row space-x-2"}>*/}
-          {/*    <DropdownMenu>*/}
-          {/*      <DropdownMenuTrigger asChild>*/}
-          {/*        <EllipsisIcon />*/}
-          {/*      </DropdownMenuTrigger>*/}
-          {/*      <DropdownMenuContent>*/}
-          {/*        <DropdownMenuItem*/}
-          {/*          onClick={() => {*/}
-          {/*            window.open(props?.link, "_blank");*/}
-          {/*          }}*/}
-          {/*        >*/}
-          {/*          <ExternalLinkIcon />*/}
-          {/*          <DropdownMenuLabel>*/}
-          {/*            <Text*/}
-          {/*              content={`Open on ${getPlatformPrettyNameByKey(props.platform)}`}*/}
-          {/*            />*/}
-          {/*          </DropdownMenuLabel>*/}
-          {/*        </DropdownMenuItem>*/}
-          {/*      </DropdownMenuContent>*/}
-          {/*    </DropdownMenu>*/}
-          {/*  </div>*/}
-          {/*</div>*/}
         </div>
       </CardContent>
     </Card>

@@ -44,7 +44,6 @@ import {
   InvalidTargetPlatformSelectionErrorToast,
   SuccessToast,
   UnknownErrorToast,
-  WarnToast,
 } from "@/views/actionToasts";
 import HeadIcons from "@/views/HeadIcons";
 import { MissingTracksDialog } from "@/views/MissingTracksDialog";
@@ -513,14 +512,14 @@ export default function Home(props: ServerSideProps) {
                   className={"w-full"}
                   onChange={(value) => {
                     setGoButtonIsDisabled(true);
-                    if (value === "applemusic") {
-                      WarnToast({
-                        title: "💔 We're sorry, you cannot do that yet",
-                        position: "top-right",
-                        description: `We're improving our Apple Music support and it'll be available soon, please bear with us and check back`,
-                      });
-                      return;
-                    }
+                    // if (value === "applemusic") {
+                    //   WarnToast({
+                    //     title: "💔 We're sorry, you cannot do that yet",
+                    //     position: "top-right",
+                    //     description: `We're improving our Apple Music support and it'll be available soon, please bear with us and check back`,
+                    //   });
+                    //   return;
+                    // }
                     if (link.includes(value)) {
                       InvalidTargetPlatformSelectionErrorToast(
                         getPlatformPrettyNameByKey(value),
