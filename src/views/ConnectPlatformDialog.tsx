@@ -1,5 +1,8 @@
+import { randomUUID } from "node:crypto";
 import axios from "axios";
+import jsonwebtoken from "jsonwebtoken";
 import Image from "next/image";
+import { useEffect } from "react";
 import Button from "@/components/button/button";
 import Text from "@/components/text/text";
 import {
@@ -12,6 +15,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import Waitlist from "@/components/waitlist";
+import type {
+  AppleMusicAuthDataResponse,
+  AppleMusicDecodedData,
+} from "@/lib/blueprint";
 import { getPlatformPrettyNameByKey } from "@/lib/utils";
 import { UnknownErrorToast } from "@/views/actionToasts";
 
@@ -40,10 +47,73 @@ const spotifyScopes = [
 const redirectURLs = {
   spotify: `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/auth/spotify/connect?scopes=${encodeURI(spotifyScopes.join(","))}`,
   deezer: `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/auth/deezer/connect?state=${process.env.NEXT_PUBLIC_DEEZER_STATE}`,
+  // todo: pass this dynamically from UI when they're trying to connect
+  soundcloud: `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/auth/soundcloud/connect?email=onigbindeayomide@gmail.com`,
 };
 
 const handleConnect = async (platform: string) => {
   try {
+    // first, handle for applemusic as it has a slightly different flow
+
+    if (platform === "applemusic") {
+      const state = randomUUID();
+      const appleId = window.AppleID;
+      const musickit = window?.MusicKit;
+
+      appleId?.auth?.init({
+        // todo: cleanup the naming of this to match what apple calls it, and or update documentation to reflect this information
+        // NEXT_PUBLIC_APPLE_CLIENT_ID is the TeamID of the applemusic configuration for the developer.
+        clientId: process.env.NEXT_PUBLIC_APPLE_CLIENT_ID ?? "",
+        // todo: ensure to confirm all necessary scopes here
+        scope: "name email",
+        redirectURI: process.env.NEXT_PUBLIC_APPLE_REDIRECT_URI ?? "",
+        state,
+        usePopup: true,
+      });
+
+      await musickit?.configure({
+        developerToken: process.env.NEXT_PUBLIC_APPLE_API_KEY ?? "",
+        app: {
+          name: "Zoove — Neo",
+          build: "1.0.0",
+        },
+      });
+
+      const appleAuthData: AppleMusicAuthDataResponse =
+        await appleId?.auth.signIn();
+      const musicInstance = musickit?.getInstance();
+      const authedUserToken = await musicInstance?.authorize();
+      const orchdioAuthUrl = `${process.env.NEXT_PUBLIC_DOLPHIN_CORE_URL}/v1/auth/applemusic/callback`;
+      const decoded: AppleMusicDecodedData = jsonwebtoken.decode(
+        appleAuthData?.authorization?.id_token,
+      );
+
+      // TODO: implement apple music callback auth on backend
+      const obj = {
+        method: "post",
+        url: orchdioAuthUrl,
+        headers: {
+          "Content-Type": "application/json",
+          "access-control-allow-origin": "*",
+          "access-control-allow-credentials": true,
+          "x-orchdio-public-key": process.env.NEXT_PUBLIC_ORCHDIO_PUBKEY,
+        },
+        data: {
+          token: authedUserToken,
+          email: decoded.email,
+          first_name: appleAuthData?.user?.firstName ?? "",
+          last_name: appleAuthData?.user?.lastName ?? "",
+          verified_email: decoded?.email_verified ?? false,
+          app: process.env.NEXT_PUBLIC_ORCHDIO_PUBKEY,
+          state,
+        },
+      };
+
+      const axiosResponse = await axios(obj);
+      window.location.href = `/?token=${axiosResponse.data.data?.token}`;
+      return;
+    }
+
     const redirectURL = redirectURLs[platform as keyof typeof redirectURLs];
     if (!redirectURL) {
       throw new Error("Invalid platform");
@@ -65,6 +135,12 @@ const handleConnect = async (platform: string) => {
 };
 
 export const ConnectPlatformDialog = (props: Props) => {
+  useEffect(() => {
+    if (window.MusicKit) {
+      console.log("MusicKit loaded and available to use in connect");
+    }
+  }, []);
+
   return (
     <div className={"flex flex-col justify-center items-center mt-16"}>
       <div className={"flex flex-col gap-2 w-64"}>
@@ -82,7 +158,7 @@ export const ConnectPlatformDialog = (props: Props) => {
                     <div className="absolute left-5">
                       <Image
                         src={`/${platform}/icons/dark.svg`}
-                        alt={"Apple music logo"}
+                        alt={`${platformName} logo`}
                         height={20}
                         width={20}
                       />
@@ -146,6 +222,27 @@ export const ConnectPlatformDialog = (props: Props) => {
 
                       <span>
                         If you have problems connecting your Deezer account,
+                        please enter your email below and we'll get back to you.
+                      </span>
+                    </div>
+                  )}
+
+                  {platform === "soundcloud" && (
+                    <div className={"flex flex-col gap-y-4 mt-4 text-center"}>
+                      <span
+                        onClick={() => handleConnect(platform)}
+                        className={"underline cursor-pointer text-gray-400"}
+                      >
+                        Click here to connect your Soundcloud account.
+                      </span>
+
+                      <span className={"italic"}>
+                        ⚠️ Due to how Soundcloud and Orchdio auth works, you need
+                        to provide your soundcloud email to connect
+                      </span>
+
+                      <span>
+                        If you have problems connecting your Soundcloud account,
                         please enter your email below and we'll get back to you.
                       </span>
                     </div>
